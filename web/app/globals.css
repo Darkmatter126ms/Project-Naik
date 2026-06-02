@@ -1,0 +1,255 @@
+/* Fonts via CSS @import (resolved by the browser at runtime, so `next build`
+   needs no network). Display: Fraunces (characterful serif). Mono: IBM Plex
+   Mono (the console voice). Deliberately not Inter/Roboto/Space Grotesk. */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --ink: #0c0e0d;
+  --ink-2: #14181a;
+  --panel: #161b1d;
+  --line: #273133;
+  --fog: #9fb0ad;
+  --text: #e7efec;
+  --signal: #5ef2a3; /* single sharp accent — "connected" green */
+  --signal-dim: #2f7d5a;
+  --warn: #f2c14e;
+  --err: #ff6b6b;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, #11201a 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #161a1d 0%, transparent 55%),
+    var(--ink);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* faint scanline texture for the console feel */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.014) 0px,
+    rgba(255, 255, 255, 0.014) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 0;
+}
+
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 11vh 24px 64px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--signal-dim);
+  margin: 0 0 18px;
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(48px, 12vw, 92px);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+.wordmark span {
+  color: var(--signal);
+}
+
+.tagline {
+  color: var(--fog);
+  max-width: 46ch;
+  margin: 0 0 34px;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--panel), var(--ink-2));
+  box-shadow: 0 24px 60px -32px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+.panel__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.012);
+  font-size: 12px;
+  color: var(--fog);
+}
+.panel__bar .target {
+  margin-left: auto;
+  color: var(--text);
+  opacity: 0.8;
+  font-size: 12px;
+  max-width: 52%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--fog);
+  box-shadow: 0 0 0 0 transparent;
+}
+.dot--ok {
+  background: var(--signal);
+  box-shadow: 0 0 12px 1px var(--signal);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.dot--warn {
+  background: var(--warn);
+  box-shadow: 0 0 10px 0 var(--warn);
+}
+.dot--err {
+  background: var(--err);
+  box-shadow: 0 0 10px 0 var(--err);
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 12px 1px var(--signal);
+  }
+  50% {
+    box-shadow: 0 0 4px 0 var(--signal-dim);
+  }
+}
+
+.panel__body {
+  padding: 18px 16px 20px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.row .k {
+  color: var(--fog);
+}
+.row .v {
+  color: var(--text);
+  text-align: right;
+  word-break: break-word;
+}
+.v--ok {
+  color: var(--signal);
+}
+.v--warn {
+  color: var(--warn);
+}
+.v--err {
+  color: var(--err);
+}
+
+.btn {
+  appearance: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  background: var(--signal);
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 18px;
+  transition:
+    transform 0.08s ease,
+    filter 0.15s ease;
+}
+.btn:hover {
+  filter: brightness(1.08);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.toggle {
+  margin-left: auto;
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.toggle button {
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  color: var(--fog);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 8px 12px;
+}
+.toggle button[aria-pressed="true"] {
+  background: rgba(94, 242, 163, 0.14);
+  color: var(--signal);
+}
+
+.note {
+  margin-top: 26px;
+  color: var(--fog);
+  font-size: 12px;
+}
+.note code {
+  color: var(--text);
+}
+
+.error {
+  color: var(--err);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
