@@ -4,3 +4,15 @@ gunicorn==23.0.0
 SQLAlchemy==2.0.36
 psycopg2-binary==2.9.10
 pydantic>=2.7,<3
+# Pricing kernel (Block 3): the insurance agent loads income_shock_glm.joblib.
+# scikit-learn is pinned to the training version to avoid pickle-compat warnings.
+scikit-learn==1.5.2
+numpy>=2.0,<3
+pandas>=2.2
+joblib>=1.3
+# Agents: model paths run on the OpenAI Agents SDK (Agent/Runner/@function_tool),
+# voice on the Realtime API. Both ship in these two packages. The agents also have
+# deterministic offline fallbacks, so these are required only for the model path.
+openai>=1.40
+openai-agents>=0.17,<1
+requests>=2.31

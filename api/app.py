@@ -73,4 +73,19 @@ def create_app(config: Optional[Config] = None) -> Flask:
         """Return JSON (not HTML) for unknown routes — friendlier to fetch()."""
         return jsonify({"status": "error", "error": "not_found"}), 404
 
+    @app.errorhandler(405)
+    def method_not_allowed(_err):  # noqa: ANN001, ANN202
+        """JSON for wrong-method requests (e.g. GET on a POST-only route)."""
+        return jsonify({"status": "error", "error": "method_not_allowed"}), 405
+
+    # Agent gateway routes (Block 1 stubs; real agents wire in Phase 2).
+    from .routes import agents_bp
+
+    app.register_blueprint(agents_bp)
+
+    # Realtime API ephemeral-token endpoint (voice path).
+    from .realtime import realtime_bp
+
+    app.register_blueprint(realtime_bp)
+
     return app

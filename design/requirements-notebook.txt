@@ -1,0 +1,12 @@
+# Reproduce design/pricing-derivation.ipynb (Block 3).
+# Run from the repo root:  jupyter nbconvert --to notebook --execute design/pricing-derivation.ipynb
+scikit-learn==1.5.2
+numpy>=2.0,<3
+pandas>=2.2
+statsmodels>=0.14
+matplotlib>=3.8
+joblib>=1.3
+# Optional, only to regenerate the .ipynb from the percent script:
+jupytext>=1.16
+nbconvert>=7.16
+ipykernel>=6.29
