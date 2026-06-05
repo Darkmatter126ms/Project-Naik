@@ -22,7 +22,7 @@ realtime_bp = Blueprint("realtime", __name__)
 
 # GA endpoint for minting browser/mobile ephemeral credentials.
 CLIENT_SECRETS_URL = "https://api.openai.com/v1/realtime/client_secrets"
-REALTIME_MODEL = os.environ.get("NAIK_REALTIME_MODEL", "gpt-realtime")
+REALTIME_MODEL = os.environ.get("NAIK_REALTIME_MODEL", "gpt-4o-realtime-preview")
 
 
 @realtime_bp.post("/realtime/token")
@@ -41,20 +41,16 @@ def realtime_token():  # noqa: ANN202
 
     # Session config baked into the token: Indonesian input transcription,
     # server-side VAD. The browser inherits this when it connects.
+    # Top-level fields — do NOT wrap in "session": {} for this endpoint.
     payload = {
-        "session": {
-            "type": "realtime",
-            "model": REALTIME_MODEL,
-            "audio": {
-                "input": {
-                    "transcription": {
-                        "model": "gpt-4o-transcribe",
-                        "language": "id",
-                    },
-                    "turn_detection": {"type": "server_vad"},
-                }
-            },
-        }
+        "model": REALTIME_MODEL,
+        "modalities": ["audio", "text"],
+        "instructions": "Anda hanya mendengarkan wawancara keuangan; jangan menjawab.",
+        "input_audio_transcription": {
+            "model": "gpt-4o-transcribe",
+            "language": "id",
+        },
+        "turn_detection": {"type": "server_vad"},
     }
 
     try:

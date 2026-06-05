@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5050";
-const REALTIME_MODEL = "gpt-realtime";
+const REALTIME_MODEL = "gpt-4o-realtime-preview";
 
 export type VoiceStatus =
   | "idle"
@@ -32,12 +32,14 @@ export type VoiceStatus =
 interface Options {
   maxSeconds?: number;
   onTranscript?: (full: string) => void;
+  onTranscriptDelta?: (partial: string) => void;
   onError?: (message: string) => void;
 }
 
 export function useRealtimeVoice({
   maxSeconds = 90,
   onTranscript,
+  onTranscriptDelta,
   onError,
 }: Options = {}) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
@@ -110,6 +112,7 @@ export function useRealtimeVoice({
           JSON.stringify({
             type: "session.update",
             session: {
+              modalities: ["audio", "text"],
               instructions:
                 "Anda hanya mendengarkan wawancara keuangan; jangan menjawab.",
               input_audio_transcription: {
@@ -142,6 +145,14 @@ export function useRealtimeVoice({
             (transcriptRef.current ? transcriptRef.current + " " : "") +
             msg.transcript;
           setTranscript(transcriptRef.current);
+          onTranscript?.(transcriptRef.current);
+        } else if (
+          msg.type === "conversation.item.input_audio_transcription.delta"
+        ) {
+          const live = transcriptRef.current
+            ? transcriptRef.current + " " + (msg.delta ?? "")
+            : (msg.delta ?? "");
+          onTranscriptDelta?.(live);
         } else if (msg.type === "error") {
           fail(msg.error?.message ?? "realtime error");
         }
