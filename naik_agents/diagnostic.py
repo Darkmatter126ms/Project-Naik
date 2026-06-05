@@ -23,11 +23,12 @@ can never disagree with the data.
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from dataclasses import dataclass
 from typing import Optional
+
+from pydantic import BaseModel, Field
 
 try:  # deployed import style
     from api.schemas import (
@@ -38,6 +39,7 @@ try:  # deployed import style
         WellnessVector,
     )
     from naik_agents.crra import crra_weights_table, gamma_for
+    from naik_agents.tools import AGENTS_SDK_AVAILABLE
 except ImportError:  # pragma: no cover - script/direct execution fallback
     import sys
 
@@ -52,6 +54,7 @@ except ImportError:  # pragma: no cover - script/direct execution fallback
         WellnessVector,
     )
     from crra import crra_weights_table, gamma_for  # type: ignore
+    from tools import AGENTS_SDK_AVAILABLE  # type: ignore
 
 DEFAULT_MODEL = os.environ.get("NAIK_DIAGNOSTIC_MODEL", "gpt-5.5")
 
@@ -121,6 +124,26 @@ RESPONSE_JSON_SCHEMA = {
         "required": [*_SCORE_PROPS.keys(), "rationale"],
     },
 }
+
+
+class _WellnessScores(BaseModel):
+    """Structured output for the model path — the seven scores + a rationale.
+
+    Mirrors ``RESPONSE_JSON_SCHEMA`` (kept above as the documented contract); the
+    SDK derives the strict JSON schema from this model via the agent's
+    ``output_type``. The scores then flow through ``WellnessVector.from_scores``
+    in Python, so the CRRA-weighted derivation and ``priority_gap`` are never the
+    model's job.
+    """
+
+    diversification: float = Field(ge=0, le=100)
+    liquidity: float = Field(ge=0, le=100)
+    growth: float = Field(ge=0, le=100)
+    risk_management: float = Field(ge=0, le=100)
+    tax_efficiency: float = Field(ge=0, le=100)
+    emergency_fund: float = Field(ge=0, le=100)
+    behavioural_resilience: float = Field(ge=0, le=100)
+    rationale: str
 
 
 # --------------------------------------------------------------------------- #
@@ -219,30 +242,46 @@ _CONCEPTS: dict[str, tuple[str, ...]] = {
     "risk_management": (
         "asuransi", "perlindungan", "proteksi", "terlindungi", "insurance",
         "cover", "jaminan",
+        # English additions
+        "protection", "protected", "covered", "policy", "coverage", "insured",
     ),
     "emergency_fund": (
         "dana darurat", "tabungan darurat", "tabungan", "dana cadangan",
         "emergency fund", "savings buffer", "simpanan",
+        # English additions
+        "savings", "saved", "buffer", "rainy day", "set aside", "emergency",
     ),
     "growth": (
         "investasi", "reksa dana", "saham", "obligasi", "equity", "fund",
         "bibit", "deposito", "invest",
+        # English additions
+        "stocks", "bonds", "portfolio", "mutual fund", "etf", "returns",
+        "investing", "invested",
     ),
     "diversification": (
         "diversifikasi", "beberapa", "berbagai", "macam-macam", "bermacam",
         "diversified", "spread", "berbagai aset",
+        # English additions
+        "diversification", "multiple funds", "various assets", "spread across",
     ),
     "liquidity": (
         "kas", "cash", "likuid", "uang tunai", "mudah dicairkan", "rekening",
         "tabungan biasa",
+        # English additions
+        "liquid", "accessible", "readily available",
     ),
     "tax_efficiency": (
         "pajak", "tax", "dplk", "pensiun", "tax-advantaged", "tabungan pensiun",
+        # English additions
+        "retirement", "pension",
     ),
     "behavioural_resilience": (
         "rutin", "disiplin", "konsisten", "teratur", "rencana keuangan",
         "berinvestasi setiap bulan", "menabung tiap bulan", "regularly",
         "consistent", "discipline",
+        # English additions
+        "regular", "every month", "monthly", "automated", "on schedule",
+        "financial plan", "stick to",
     ),
 }
 # Concepts that, when present (positively), indicate WEAKNESS for the dimension
@@ -252,21 +291,44 @@ _NEGATIVE_CONCEPTS: dict[str, tuple[str, ...]] = {
     "behavioural_resilience": (
         "impulsif", "boros", "tergoda", "checkout", "kalap", "ghosting",
         "berhenti investasi", "sekali saja", "lupa", "impulsive",
+        # English additions
+        "impulsively", "splurge", "splurging", "stopped investing", "gave up",
+        "quit investing", "inconsistent", "spend too much",
     ),
     "emergency_fund": (
         "pas-pasan", "gaji habis", "uang habis", "habis sebelum", "paycheck to paycheck",
         "tidak bisa menabung", "tidak punya dana darurat", "tanpa dana darurat",
         "no emergency fund",
+        # English additions
+        "no savings", "nothing saved", "spent everything", "living paycheck",
+        "hand to mouth", "broke",
     ),
     "risk_management": (
         "penghasilan berhenti", "kalau sakit tidak", "kalau tidak kerja",
         "rentan", "income stops",
+        # English additions
+        "no insurance", "uninsured", "no coverage", "not covered", "vulnerable",
+        "if i get sick", "if i cannot work", "if i stop working",
     ),
     "liquidity": (
         "susah dicairkan", "sulit dicairkan", "terkunci", "tidak likuid", "illiquid",
         "kas saya sangat sedikit", "uang terkunci", "locked",
+        # English additions
+        "locked up", "tied up", "hard to access", "cannot withdraw",
     ),
 }
+
+# ── Contraction expander ──────────────────────────────────────────────────── #
+# Must run before polarity detection so "don't have insurance" reliably
+# triggers the "not" negator.  Only applied to the lowercased transcript.
+_CONTRACTIONS: tuple[tuple[str, str], ...] = (
+    ("don't",    "do not"),    ("doesn't",  "does not"),  ("didn't",   "did not"),
+    ("haven't",  "have not"),  ("hasn't",   "has not"),   ("hadn't",   "had not"),
+    ("won't",    "will not"),  ("wouldn't", "would not"), ("can't",    "cannot"),
+    ("couldn't", "could not"), ("isn't",    "is not"),    ("aren't",   "are not"),
+    ("wasn't",   "was not"),   ("weren't",  "were not"),  ("i've",     "i have"),
+    ("i'm",      "i am"),      ("i'll",     "i will"),    ("i'd",      "i would"),
+)
 
 _NEG_RE = re.compile(r"\b(" + "|".join(_NEGATORS) + r")\b")
 _BOOST_RE = re.compile(r"\b(" + "|".join(_BOOSTERS) + r")\b")
@@ -340,6 +402,10 @@ def _score_heuristic(inp: DiagnosticInput) -> dict[str, float]:
     signals. Each dimension is mapped to 0-100 around a neutral midpoint.
     """
     text = (inp.voice_transcript or "").lower()
+    # Expand English contractions so "don't", "haven't", "can't" etc. are
+    # correctly caught by the \bnot\b / \bno\b negator regex.
+    for contraction, expansion in _CONTRACTIONS:
+        text = text.replace(contraction, expansion)
     txns = inp.transactions
 
     # --- transaction-derived signals (all roughly normalised to [-1, +1]) ---
@@ -380,6 +446,13 @@ def _score_heuristic(inp: DiagnosticInput) -> dict[str, float]:
     for k in tx_sig:  # clamp
         tx_sig[k] = max(-1.0, min(1.0, tx_sig[k]))
 
+    # When no transaction history is provided (onboard users without linked
+    # Shopee), zero out every tx_sig so the score is driven purely by the
+    # transcript. Without this, cat_count=0 always forces diversification to
+    # -1.0 and it wins as the priority gap regardless of what was said.
+    if not txns:
+        tx_sig = {k: 0.0 for k in tx_sig}
+
     # blend weights: how much transcript vs transactions drive each dimension.
     # Protection/behaviour are best evidenced by what people SAY; balances and
     # breadth are best evidenced by what they DO.
@@ -416,22 +489,23 @@ def _score_heuristic(inp: DiagnosticInput) -> dict[str, float]:
 
 
 def _score_with_model(inp: DiagnosticInput, model: str) -> dict[str, float]:
-    """Call the OpenAI API with structured output; return the seven scores + rationale."""
-    from openai import OpenAI  # imported lazily so offline runs need no SDK
+    """Score via the OpenAI Agents SDK with structured output.
 
-    client = OpenAI()
-    user_msg = _build_user_message(inp)
-    resp = client.chat.completions.create(
+    Returns the seven scores plus ``rationale`` as a dict — the exact shape the
+    deterministic scorer returns — so ``run_diagnostic`` is identical below the
+    model call. Raises on any SDK/parse error so the caller can fall back.
+    """
+    from agents import Agent, Runner  # imported lazily so offline runs need no SDK
+
+    agent = Agent(
+        name="Naik Diagnostic",
+        instructions=SYSTEM_PROMPT,
         model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_msg},
-        ],
-        response_format={"type": "json_schema", "json_schema": RESPONSE_JSON_SCHEMA},
-        temperature=0,
+        output_type=_WellnessScores,
     )
-    content = resp.choices[0].message.content or "{}"
-    return json.loads(content)
+    result = Runner.run_sync(agent, _build_user_message(inp))
+    scores: _WellnessScores = result.final_output
+    return scores.model_dump()
 
 
 # --------------------------------------------------------------------------- #
@@ -460,7 +534,11 @@ def run_diagnostic(
     way, the seven scores go through ``WellnessVector.from_scores`` so
     ``priority_gap`` is derived and the result is schema-valid.
     """
-    use_model = (not force_heuristic) and bool(os.environ.get("OPENAI_API_KEY"))
+    use_model = (
+        (not force_heuristic)
+        and bool(os.environ.get("OPENAI_API_KEY"))
+        and AGENTS_SDK_AVAILABLE
+    )
     rationale: Optional[str] = None
 
     if use_model:

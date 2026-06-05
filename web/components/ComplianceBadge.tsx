@@ -6,61 +6,67 @@ interface Props {
   labels: CopyShape;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  approved: "Disetujui",
-  approved_with_conditions: "Disetujui (bersyarat)",
-  needs_human_review: "Perlu Tinjauan Manusia",
-  rejected: "Ditolak",
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  approved: "var(--signal)",
-  approved_with_conditions: "var(--warn)",
-  needs_human_review: "var(--warn)",
-  rejected: "var(--err)",
-};
+// Green for approved outcomes, red for everything else.
+const isApproved = (status: string) =>
+  status === "approved" || status === "approved_with_conditions";
 
 export default function ComplianceBadge({ verdict, labels }: Props) {
-  const color = STATUS_COLOR[verdict.status] ?? "var(--fog)";
-  const label = STATUS_LABEL[verdict.status] ?? verdict.status;
+  const approved = isApproved(verdict.status);
+  const statusColor = approved ? "var(--signal)" : "var(--err)";
+  const statusBg   = approved ? "var(--signal-bg)" : "var(--err-bg)";
+
+  // Status label from locale (e.g. "Disetujui" / "Approved")
+  const statusLabel =
+    labels.complianceStatus[verdict.status] ?? verdict.status;
 
   return (
     <div className="compliance-badge">
-      {/* Status indicator */}
-      <div className="compliance-badge__status">
+
+      {/* ── Status pill — green if approved, red otherwise ── */}
+      <div
+        className="compliance-badge__pill"
+        style={{ background: statusBg, borderColor: statusColor }}
+      >
         <span
           className="compliance-badge__dot"
-          style={{ background: color, boxShadow: `0 0 10px ${color}` }}
+          style={{ background: statusColor, boxShadow: `0 0 8px ${statusColor}` }}
         />
-        <span className="compliance-badge__label" style={{ color }}>
-          {label}
+        <span
+          className="compliance-badge__label"
+          style={{ color: statusColor }}
+        >
+          {statusLabel}
         </span>
       </div>
 
-      {/* Human confirmation gate */}
-      {verdict.requires_human_confirmation && (
-        <div className="compliance-badge__gate">
-          <span className="compliance-badge__gate-icon">👤</span>
-          <span>
-            {labels.confirmedBy} {labels.human} — konfirmasi diperlukan sebelum
-            transaksi
+      {/* ── Human confirmation gate — ALWAYS shown (regulatory requirement) ── */}
+      <div className="compliance-badge__gate">
+        <span className="compliance-badge__gate-icon">👤</span>
+        <div className="compliance-badge__gate-text">
+          <span className="compliance-badge__gate-heading">
+            {labels.confirmationGateHeading}
+          </span>
+          <span className="compliance-badge__gate-sub">
+            {labels.confirmationGateSub}
           </span>
         </div>
-      )}
+      </div>
 
-      {/* OJK framing */}
+      {/* Rationale */}
       <p className="compliance-badge__rationale">{verdict.rationale}</p>
 
       {/* Reviewed dimensions */}
-      <div className="compliance-badge__reviewed">
-        {verdict.reviewed.map((r) => (
-          <span key={r} className="compliance-badge__chip">
-            {r}
-          </span>
-        ))}
-      </div>
+      {verdict.reviewed.length > 0 && (
+        <div className="compliance-badge__reviewed">
+          {verdict.reviewed.map((r) => (
+            <span key={r} className="compliance-badge__chip">
+              {r}
+            </span>
+          ))}
+        </div>
+      )}
 
-      {/* Disclaimer */}
+      {/* OJK disclaimer — always at the bottom */}
       {verdict.disclaimers.map((d, i) => (
         <p key={i} className="compliance-badge__disclaimer">
           {d}

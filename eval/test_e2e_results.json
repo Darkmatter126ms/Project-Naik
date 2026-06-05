@@ -1,0 +1,248 @@
+{
+  "test": "test_e2e_sari",
+  "fixture": "/home/claude/naik_extracted/naik/eval/fixtures/sari.json",
+  "mode": "force_heuristic (no OpenAI key required)",
+  "recorded_at": "2026-06-04T09:37:44.734958+00:00",
+  "passed": 34,
+  "failed": 0,
+  "total": 34,
+  "all_passed": true,
+  "crashed": false,
+  "crash_traceback": "",
+  "failed_assertions": [],
+  "assertions": [
+    {
+      "name": "request_id is a non-empty string",
+      "passed": true,
+      "detail": "got 'naik-fe3329d8e6f2'",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "user_id == 'sari'",
+      "passed": true,
+      "detail": "got 'sari'",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "wellness is not None",
+      "passed": true,
+      "detail": "",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "wealth is not None (Sari triggers investment recommendation)",
+      "passed": true,
+      "detail": "",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "insurance is not None (Sari has a flood-income gap)",
+      "passed": true,
+      "detail": "",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "compliance is not None",
+      "passed": true,
+      "detail": "",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "narrative is a non-empty string",
+      "passed": true,
+      "detail": "len=1335",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "next_step is set",
+      "passed": true,
+      "detail": "got NextStep.CONFIRM_BOTH",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "disclaimers list is non-empty",
+      "passed": true,
+      "detail": "got 5 entries",
+      "group": "A: FinalResponse fields"
+    },
+    {
+      "name": "all seven dimension scores in [0, 100]",
+      "passed": true,
+      "detail": "diversification=71.9, liquidity=79.7, growth=84.7, risk_management=26.4, tax_efficiency=54.3, emergency_fund=70.9, behavioural_resilience=51.2",
+      "group": "B: WellnessVector"
+    },
+    {
+      "name": "overall_score in [0, 100]",
+      "passed": true,
+      "detail": "got 62.7",
+      "group": "B: WellnessVector"
+    },
+    {
+      "name": "priority_gap == 'risk_management'   ← BUILD-PLAN SPEC",
+      "passed": true,
+      "detail": "got 'risk_management'  (scores: rm=26.4, ef=70.9, liq=79.7)",
+      "group": "B: WellnessVector"
+    },
+    {
+      "name": "priority_gap is genuinely the lowest-scoring dimension",
+      "passed": true,
+      "detail": "risk_management=26.4, floor=26.4",
+      "group": "B: WellnessVector"
+    },
+    {
+      "name": "1–3 fund picks",
+      "passed": true,
+      "detail": "got 3 picks",
+      "group": "C: WealthRecommendation"
+    },
+    {
+      "name": "recommended_monthly_contribution_idr >= 0",
+      "passed": true,
+      "detail": "Rp 300,000",
+      "group": "C: WealthRecommendation"
+    },
+    {
+      "name": "rationale is non-empty",
+      "passed": true,
+      "detail": "len=280",
+      "group": "C: WealthRecommendation"
+    },
+    {
+      "name": "all picks are OJK-licensed",
+      "passed": true,
+      "detail": "Trimegah Kas Syariah, Insight Money Syariah, Majoris Pasar Uang Syariah Indonesia",
+      "group": "C: WealthRecommendation"
+    },
+    {
+      "name": "top fund is sharia-compliant (Sari is a halal investor)",
+      "passed": true,
+      "detail": "fund='Trimegah Kas Syariah' is_sharia=True",
+      "group": "C: WealthRecommendation"
+    },
+    {
+      "name": "quote_id is non-empty",
+      "passed": true,
+      "detail": "got 'naik-shield-sari'",
+      "group": "D: InsuranceQuote"
+    },
+    {
+      "name": "premium_idr > 0",
+      "passed": true,
+      "detail": "Rp 202,471",
+      "group": "D: InsuranceQuote"
+    },
+    {
+      "name": "payout_per_event_idr > 0",
+      "passed": true,
+      "detail": "Rp 925,000",
+      "group": "D: InsuranceQuote"
+    },
+    {
+      "name": "premium_idr < payout_per_event_idr   ← BUILD-PLAN SPEC",
+      "passed": true,
+      "detail": "premium=Rp 202,471  payout=Rp 925,000  ratio=0.219",
+      "group": "D: InsuranceQuote"
+    },
+    {
+      "name": "trigger kecamatan == 'Penjaringan'",
+      "passed": true,
+      "detail": "got 'Penjaringan'",
+      "group": "D: InsuranceQuote"
+    },
+    {
+      "name": "trigger metric == 'rainfall_mm' (BMKG parametric)",
+      "passed": true,
+      "detail": "got 'rainfall_mm'",
+      "group": "D: InsuranceQuote"
+    },
+    {
+      "name": "estimated_daily_earnings_idr > 0",
+      "passed": true,
+      "detail": "Rp 231,250",
+      "group": "D: InsuranceQuote"
+    },
+    {
+      "name": "payout_per_event_idr = daily_earnings × payout_multiple (±1 Rp rounding)",
+      "passed": true,
+      "detail": "231,250 × 4.0 = 925,000, got 925,000",
+      "group": "D: InsuranceQuote"
+    },
+    {
+      "name": "compliance.status is APPROVED or APPROVED_WITH_CONDITIONS   ← BUILD-PLAN SPEC",
+      "passed": true,
+      "detail": "got 'approved'",
+      "group": "E: ComplianceVerdict"
+    },
+    {
+      "name": "is_general_guidance is True (OJK framing)",
+      "passed": true,
+      "detail": "",
+      "group": "E: ComplianceVerdict"
+    },
+    {
+      "name": "requires_human_confirmation is True (Rule 4)",
+      "passed": true,
+      "detail": "",
+      "group": "E: ComplianceVerdict"
+    },
+    {
+      "name": "at least one disclaimer present",
+      "passed": true,
+      "detail": "got 5 disclaimers",
+      "group": "E: ComplianceVerdict"
+    },
+    {
+      "name": "rationale is non-empty",
+      "passed": true,
+      "detail": "len=147",
+      "group": "E: ComplianceVerdict"
+    },
+    {
+      "name": "FinalResponse serialises and re-validates through JSON",
+      "passed": true,
+      "detail": "JSON bytes=5684",
+      "group": "F: Schema round-trip"
+    },
+    {
+      "name": "narrative mentions the priority gap ('perlindungan')",
+      "passed": true,
+      "detail": "narrative[:100] = 'Prioritas keuangan utama Anda saat ini adalah perlindungan terhadap risiko (skor kesehatan keuangan '",
+      "group": "G: Narrative coherence"
+    },
+    {
+      "name": "next_step is a transactional action (confirm_both / confirm_investment / confirm_insurance)",
+      "passed": true,
+      "detail": "got 'confirm_both'",
+      "group": "G: Narrative coherence"
+    }
+  ],
+  "pipeline_snapshot": {
+    "request_id": "naik-fe3329d8e6f2",
+    "next_step": "confirm_both",
+    "priority_gap": "risk_management",
+    "rm_score": 26.4,
+    "overall_score": 62.7,
+    "wealth_picks": [
+      {
+        "fund_name": "Trimegah Kas Syariah",
+        "is_sharia": true,
+        "match_score": 93.7
+      },
+      {
+        "fund_name": "Insight Money Syariah",
+        "is_sharia": true,
+        "match_score": 93.6
+      },
+      {
+        "fund_name": "Majoris Pasar Uang Syariah Indonesia",
+        "is_sharia": true,
+        "match_score": 93.4
+      }
+    ],
+    "insurance_premium_idr": 202471,
+    "insurance_payout_idr": 925000,
+    "trigger_kecamatan": "Penjaringan",
+    "compliance_status": "approved",
+    "narrative_preview": "Prioritas keuangan utama Anda saat ini adalah perlindungan terhadap risiko (skor kesehatan keuangan 63/100). Pola pengel"
+  }
+}

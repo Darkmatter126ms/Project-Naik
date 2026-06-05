@@ -1,158 +1,112 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { COPY } from "@/lib/copy";
-import { FIXTURE_RESULT } from "@/lib/fixtures";
-import { useRealtimeVoice } from "@/lib/useRealtimeVoice";
-import type { Lang } from "@/lib/types";
+import { useLang } from "@/lib/useLang";
+import { useTheme } from "@/lib/useTheme";
+import { SARI_PERSONA_BASE, SARI_TRANSACTIONS } from "@/lib/fixtures";
 
-const DURATION = 90;
-
-export default function IntakePage() {
-  const [lang, setLang] = useState<Lang>("id");
-  const [transcript, setTranscript] = useState("");
-  const [analyzing, setAnalyzing] = useState(false);
-  const [voiceError, setVoiceError] = useState<string | null>(null);
+export default function HomePage() {
+  const [lang, setLang] = useLang();
+  const [theme, toggleTheme] = useTheme();
   const router = useRouter();
   const t = COPY[lang];
 
-  useEffect(() => {
-    document.title = "Naik · Wawancara Suara";
-  }, []);
-
-  const voice = useRealtimeVoice({
-    maxSeconds: DURATION,
-    onTranscript: (full) => {
-      if (full.trim()) setTranscript(full);
-    },
-    onError: (msg) => setVoiceError(msg),
-  });
-
-  // Live transcript mirroring while listening.
-  useEffect(() => {
-    if (voice.status === "listening" && voice.transcript) {
-      setTranscript(voice.transcript);
-    }
-  }, [voice.transcript, voice.status]);
-
-  // If Sari was pre-selected, pre-fill her canonical transcript.
-  useEffect(() => {
-    const selected = sessionStorage.getItem("selected_persona");
-    if (selected === "sari") {
-      setTranscript(
-        "Dulu saya pernah beli reksa dana di Bibit lewat Shopee, tapi cuma sekali lalu saya tinggal begitu saja. " +
-          "Saya tidak punya asuransi apa pun. Saya kerja sebagai driver ojek online, jadi kalau banjir dan saya " +
-          "tidak bisa keluar, penghasilan saya langsung berhenti — saya tidak terlindungi sama sekali. " +
-          "Saya menabung sedikit, tapi sering tergoda checkout kalau ada diskon.",
-      );
-    }
-  }, []);
-
-  const isListening = voice.status === "listening";
-  const secondsLeft = voice.secondsLeft;
-
-  function handleAnalyze() {
-    setAnalyzing(true);
-    // Phase 2: POST transcript to /orchestrate; for now use the fixture.
-    setTimeout(() => {
-      sessionStorage.setItem("naik_result", JSON.stringify(FIXTURE_RESULT));
-      router.push("/results");
-    }, 1400);
+  function selectSari() {
+    // Write Sari's full profile including her 70-transaction Shopee history
+    // so the diagnostic agent reads real spending patterns — not just transcript.
+    sessionStorage.setItem("naik_persona", JSON.stringify({
+      ...SARI_PERSONA_BASE,
+      transactions: SARI_TRANSACTIONS,
+    }));
+    router.push("/intake");
   }
 
-  // Countdown ring geometry.
-  const R = 52;
-  const C = 2 * Math.PI * R;
-  const progress = isListening ? (DURATION - secondsLeft) / DURATION : 0;
-  const dash = C - progress * C;
+  function startDirect() {
+    // Clear any stale persona so the onboard form starts fresh
+    sessionStorage.removeItem("naik_persona");
+    router.push("/onboard");
+  }
 
   return (
-    <div className="page page--intake">
+    <div className="page page--home">
+      {/* Controls */}
       <div className="lang-toggle">
+        <button className="lang-btn" onClick={toggleTheme} aria-label="Toggle theme">
+          {theme === "dark" ? "☀" : "🌙"}
+        </button>
         <button className="lang-btn" onClick={() => setLang(lang === "id" ? "en" : "id")}>
           {t.langToggle}
         </button>
       </div>
 
-      <button className="back-link" onClick={() => router.push("/")}>
-        {t.backToHome}
-      </button>
-
-      <h1 className="page-title">{t.intakeTitle}</h1>
-      <p className="page-subtitle">{t.intakeInstruction}</p>
-
-      <div className="voice-ring-wrap">
-        <svg className="voice-ring" viewBox="0 0 120 120" width="120" height="120">
-          <circle cx="60" cy="60" r={R} fill="none" stroke="var(--line)" strokeWidth="3" />
-          <circle
-            cx="60" cy="60" r={R}
-            fill="none"
-            stroke={isListening ? "var(--signal)" : "var(--line)"}
-            strokeWidth="3"
-            strokeDasharray={C}
-            strokeDashoffset={dash}
-            strokeLinecap="round"
-            transform="rotate(-90 60 60)"
-            style={{ transition: "stroke-dashoffset 1s linear" }}
-          />
-        </svg>
-
-        <button
-          className={`voice-btn ${isListening ? "voice-btn--active" : ""}`}
-          onClick={isListening ? voice.stop : voice.start}
-          disabled={analyzing || voice.status === "connecting"}
-          aria-label={isListening ? t.recordStop : t.recordStart}
-        >
-          {isListening ? (
-            <span className="voice-btn__icon voice-btn__icon--stop">■</span>
-          ) : (
-            <span className="voice-btn__icon">🎙</span>
-          )}
-        </button>
-
-        {voice.status === "connecting" && (
-          <p className="voice-countdown">{t.analyzing}</p>
-        )}
-        {isListening && (
-          <p className="voice-countdown">
-            <span className="voice-countdown__num">{secondsLeft}</span>
-            <span className="voice-countdown__label"> {t.timeLeft}</span>
-          </p>
-        )}
+      {/* Hero */}
+      <div className="hero">
+        <p className="hero__eyebrow">{t.heroEyebrow}</p>
+        <h1 className="hero__headline">
+          {t.heroHeadline.split("\n").map((line, i) => (
+            <span key={i} className="hero__headline-line">{line}</span>
+          ))}
+        </h1>
+        <p className="hero__body">{t.heroBody}</p>
       </div>
 
-      {/* Voice failure -> graceful manual fallback (never hard-block the demo) */}
-      {voiceError && (
-        <p className="voice-fallback-note">
-          Suara tidak tersedia ({voiceError}). Anda bisa mengetik transkrip di
-          bawah.
-        </p>
-      )}
+      {/* Persona selector */}
+      <p className="section-label">{t.selectPersona}</p>
+      <div className="persona-list">
+        <div className="persona-card">
+          <div className="persona-card__avatar">S</div>
+          <div className="persona-card__body">
+            <div className="persona-card__name-row">
+              <span className="persona-card__name">Sari Dewi</span>
+              <span className="persona-card__age">26 thn</span>
+              <span className="persona-card__gig">
+                {t.gigYes}
+              </span>
+            </div>
+            <div className="persona-card__stats">
+              <div className="stat">
+                <span className="stat__label">{t.incomeLabel}</span>
+                <span className="stat__value">Rp 6.000.000/bln</span>
+              </div>
+              <div className="stat">
+                <span className="stat__label">{t.locationLabel}</span>
+                <span className="stat__value">Penjaringan, Jakarta</span>
+              </div>
+              <div className="stat">
+                <span className="stat__label">{t.profileLabel}</span>
+                <span className="stat__value">Conservative · Syariah</span>
+              </div>
+            </div>
+            <p className="persona-card__meta">
+              {lang === "id"
+                ? "Pernah beli 1 reksa dana Bibit lewat Shopee lalu ghosting. Tidak punya asuransi selain credit-life SPayLater."
+                : "Bought one Bibit fund through Shopee, then went dark. Only coverage is the credit-life policy bundled with SPayLater."}
+            </p>
 
-      <div className="transcript-wrap">
-        <label className="transcript-label">{t.transcriptLabel}</label>
-        <textarea
-          className="transcript-area"
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          placeholder={t.transcriptPlaceholder}
-          rows={6}
-          spellCheck={false}
-        />
-      </div>
-
-      {transcript.trim() && !isListening && (
-        <div className="cta-center">
-          <button
-            className="btn btn--primary btn--wide"
-            onClick={handleAnalyze}
-            disabled={analyzing}
-          >
-            {analyzing ? t.analyzing : t.analyzeBtn}
-          </button>
+            <div className="persona-card__actions">
+              <button className="btn btn--primary" onClick={selectSari}>
+                {t.useSari}
+              </button>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* Or speak directly */}
+      <div className="divider-or">{t.orSpeakNow}</div>
+      <div className="cta-center">
+        <button className="btn btn--outline btn--wide" onClick={startDirect}>
+          {t.startIntake}
+        </button>
+      </div>
+
+      {/* Eval link */}
+      <div className="home-eval-link">
+        <button className="back-link" onClick={() => router.push("/eval")}>
+          {lang === "id" ? "Lihat Dasbor Evaluasi →" : "View Evaluation Dashboard →"}
+        </button>
+      </div>
     </div>
   );
 }

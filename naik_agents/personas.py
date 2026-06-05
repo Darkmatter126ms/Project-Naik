@@ -126,7 +126,25 @@ def _T(i, amt, d, c):
 
 
 def _income(amt, n=4):
-    return [_T(900 + i, amt, TransactionDirection.CREDIT, TransactionCategory.INCOME) for i in range(n)]
+    """n income inflows spaced one week apart across the month.
+
+    Spacing weekly (not on consecutive days) makes the income *cadence*
+    observable, so the insurance agent's transaction-velocity path can estimate
+    weekly income from the ledger rather than deferring to the self-report.
+    Amounts are identical, so income variability (income_cv) — and therefore the
+    diagnostic's scoring and the wealth agent's irregular-income signal — is
+    unchanged; only the timestamps move.
+    """
+    return [
+        Transaction(
+            transaction_id=f"inc{i}",
+            timestamp=datetime(2026, 1, 1 + i * 7, 12, 0, tzinfo=timezone.utc),
+            amount_idr=amt,
+            direction=TransactionDirection.CREDIT,
+            category=TransactionCategory.INCOME,
+        )
+        for i in range(n)
+    ]
 
 
 def persona_suite() -> list[tuple[DiagnosticInput, str]]:

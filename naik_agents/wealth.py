@@ -38,6 +38,8 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
+from pydantic import BaseModel
+
 try:  # deployed import style
     from api.schemas import (
         DiagnosticInput,
@@ -50,11 +52,7 @@ try:  # deployed import style
         WellnessDimension,
         WellnessVector,
     )
-    from naik_agents.tools import (
-        GET_FUND_LIST_TOOL_SCHEMA,
-        dispatch_tool,
-        get_fund_list,
-    )
+    from naik_agents.tools import AGENTS_SDK_AVAILABLE, WEALTH_TOOLS, get_fund_list
 except ImportError:  # pragma: no cover - script/direct execution fallback
     import sys
 
@@ -72,11 +70,7 @@ except ImportError:  # pragma: no cover - script/direct execution fallback
         WellnessDimension,
         WellnessVector,
     )
-    from tools import (  # type: ignore
-        GET_FUND_LIST_TOOL_SCHEMA,
-        dispatch_tool,
-        get_fund_list,
-    )
+    from tools import AGENTS_SDK_AVAILABLE, WEALTH_TOOLS, get_fund_list  # type: ignore
 
 DEFAULT_MODEL = os.environ.get("NAIK_WEALTH_MODEL", "gpt-5.5")
 
@@ -383,9 +377,14 @@ _TYPE_LABEL_ID: dict[FundType, str] = {
 
 
 def _fund_justification_id(
-    fund: dict, *, signal: IncomeSignal, sharia: bool, is_top: bool
+    fund: dict, *, signal: IncomeSignal, sharia: bool, rank: int
 ) -> str:
-    """One natural Bahasa sentence explaining why this fund fits the user."""
+    """One natural Bahasa sentence explaining why this fund fits the user.
+
+    ``rank`` is 0-indexed: 0 = top pick (most personalised), 1 = strong
+    alternative (different track-record angle), 2 = third option (comparison
+    or diversification within the same category).
+    """
     fund_type = FundType(fund["fund_type"])
     label = _TYPE_LABEL_ID[fund_type]
     sharia_clause = "sesuai prinsip syariah, " if (sharia and fund.get("is_sharia")) else ""
@@ -393,22 +392,43 @@ def _fund_justification_id(
 
     if fund_type in (FundType.MONEY_MARKET, FundType.FIXED_INCOME):
         liquid_clause = (
-            "likuiditas tinggi dan risiko rendah sehingga dana mudah dicairkan saat dibutuhkan"
+            "likuiditas tinggi dan risiko rendah sehingga dana mudah dicairkan kapan pun dibutuhkan"
             if fund_type is FundType.MONEY_MARKET
-            else "risiko moderat dengan potensi imbal hasil sedikit lebih tinggi"
+            else "risiko moderat dengan potensi imbal hasil sedikit lebih tinggi dari pasar uang"
         )
-        irregular_clause = (
-            ", cocok untuk penghasilan tidak tetap seperti milik Anda"
-            if signal.irregular and is_top
-            else ""
-        )
-        return (
-            f"{label.capitalize()} {sharia_clause}menawarkan {liquid_clause}"
-            f"{irregular_clause}, dengan biaya pengelolaan rendah ({er:.2f}%)."
-        )
+        if rank == 0:
+            if signal.is_gig_worker:
+                persona_clause = (
+                    ", pilihan utama kami untuk penghasilan tidak tetap seperti driver ojek online"
+                )
+            elif signal.irregular:
+                persona_clause = (
+                    ", cocok untuk penghasilan yang berfluktuasi seperti pola Anda"
+                )
+            else:
+                persona_clause = ""
+            return (
+                f"{label.capitalize()} {sharia_clause}menawarkan {liquid_clause}"
+                f"{persona_clause}, dengan biaya pengelolaan rendah ({er:.2f}%)."
+            )
+        # For ranks 1 and 2 the sharia_clause (which ends with ", ") would break
+        # the grammar before "adalah" / "melengkapi"; append a clean suffix instead.
+        sharia_suffix = " (syariah)" if (sharia and fund.get("is_sharia")) else ""
+        if rank == 1:
+            return (
+                f"{label.capitalize()}{sharia_suffix} adalah alternatif kuat dengan rekam "
+                f"jejak manajer investasi yang berbeda, memberi diversifikasi manajer "
+                f"dengan biaya pengelolaan {er:.2f}%."
+            )
+        else:
+            return (
+                f"{label.capitalize()}{sharia_suffix} melengkapi dua pilihan di atas "
+                f"dan dapat menjadi cadangan jika slot investasi salah satunya sudah penuh, "
+                f"dengan biaya pengelolaan {er:.2f}%."
+            )
     return (
-        f"{label.capitalize()} {sharia_clause}memberi potensi pertumbuhan untuk horizon "
-        f"yang lebih panjang, dengan biaya pengelolaan {er:.2f}%."
+        f"{label.capitalize()} {sharia_clause}memberi potensi pertumbuhan jangka panjang "
+        f"saat fondasi perlindungan sudah terpasang, dengan biaya pengelolaan {er:.2f}%."
     )
 
 
@@ -428,8 +448,8 @@ def _overall_rationale_id(
         )
     if protection_first:
         text += (
-            ", sambil Anda memprioritaskan perlindungan penghasilan terlebih dahulu "
-            "sebelum mengejar pertumbuhan"
+            " untuk saat ini; tingkatkan ke dana pertumbuhan setelah "
+            "perlindungan penghasilan Anda terpasang"
         )
     if sharia:
         text += ", dan semuanya sesuai prinsip syariah"
@@ -496,7 +516,7 @@ def _build_recommendation(
         rationale = (
             justifications[i]
             if justifications and i < len(justifications)
-            else _fund_justification_id(fund, signal=signal, sharia=sharia, is_top=(i == 0))
+            else _fund_justification_id(fund, signal=signal, sharia=sharia, rank=i)
         )
         picks.append(
             FundPick(
@@ -540,23 +560,17 @@ def _build_recommendation(
 # Model path                                                                   #
 # --------------------------------------------------------------------------- #
 
-_JUSTIFY_JSON_SCHEMA = {
-    "name": "wealth_justifications",
-    "strict": True,
-    "schema": {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "fund_justifications": {
-                "type": "array",
-                "items": {"type": "string"},
-                "description": "One Bahasa sentence per pick, in the same order as the picks.",
-            },
-            "overall_rationale": {"type": "string"},
-        },
-        "required": ["fund_justifications", "overall_rationale"],
-    },
-}
+class _WealthJustifications(BaseModel):
+    """Structured output the wealth agent returns: Bahasa prose only.
+
+    The SDK enforces this shape via the agent's ``output_type``. The picks
+    themselves are ranked deterministically in Python and never come from the
+    model — it authors only the per-pick sentences (same order) and one overall
+    rationale.
+    """
+
+    fund_justifications: list[str]
+    overall_rationale: str
 
 
 def _persona_context_block(
@@ -585,49 +599,18 @@ def _justify_with_model(
     sharia_only: bool,
     model: str,
 ) -> tuple[list[str], str]:
-    """Run the tool-calling loop, then ask the model to author Bahasa justifications.
+    """Author Bahasa justifications via the OpenAI Agents SDK.
 
-    Step 1 advertises the get_fund_list tool and lets the model call it (faithful
-    to the build plan's "calls get_fund_list tool"). Step 2 hands the model the
-    already-ranked picks and requests one Bahasa sentence each plus an overall
-    rationale, as strict JSON. Selection stays deterministic; the model only
-    writes prose. Raises on any API/parse error so the caller can fall back.
+    Builds an :class:`Agent` carrying the ``get_fund_list`` tool (so the model
+    can inspect the catalogue, faithful to the build plan's "calls get_fund_list
+    tool") and a structured ``output_type``. The picks are already ranked
+    deterministically in Python; the agent only writes one Bahasa sentence per
+    pick (same order) plus an overall rationale. Raises on any SDK/parse error
+    so the caller can fall back to templates.
     """
-    from openai import OpenAI  # lazy import: offline runs need no SDK
+    from agents import Agent, Runner  # lazy: offline/no-SDK runs never reach here
 
-    client = OpenAI()
     context = _persona_context_block(inp, wellness, signal=assess_income(inp, wellness))
-
-    # --- Step 1: genuine tool call so the model fetches its candidate universe.
-    messages: list[dict] = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {
-            "role": "user",
-            "content": context + "\n\nCall get_fund_list to retrieve candidate funds.",
-        },
-    ]
-    first = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        tools=[GET_FUND_LIST_TOOL_SCHEMA],
-        tool_choice="auto",
-        temperature=0,
-    )
-    choice = first.choices[0].message
-    if choice.tool_calls:
-        messages.append(choice.model_dump())
-        for call in choice.tool_calls:
-            args = json.loads(call.function.arguments or "{}")
-            result = dispatch_tool(call.function.name, args)
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": call.id,
-                    "content": json.dumps(result[:25], ensure_ascii=False),  # bounded
-                }
-            )
-
-    # --- Step 2: hand over the deterministic picks; ask for Bahasa prose only.
     picks_for_model = [
         {
             "fund_name": f["fund_name"],
@@ -641,26 +624,25 @@ def _justify_with_model(
         }
         for f, s in ranked
     ]
-    messages.append(
-        {
-            "role": "user",
-            "content": (
-                "These are the final ranked picks (do not change them). Write one "
-                "Bahasa Indonesia sentence per fund in this exact order explaining "
-                "the fit for this user, and one overall rationale sentence. "
-                f"sharia_required={sharia_only}.\n"
-                + json.dumps(picks_for_model, ensure_ascii=False)
-            ),
-        }
+    instruction = (
+        "These are the final ranked picks (do not change or reorder them). You "
+        "may call get_fund_list to inspect the catalogue. Write one Bahasa "
+        "Indonesia sentence per fund in this exact order explaining the fit for "
+        "this user, plus one overall rationale sentence. "
+        f"sharia_required={sharia_only}.\n"
+        + json.dumps(picks_for_model, ensure_ascii=False)
     )
-    second = client.chat.completions.create(
+
+    agent = Agent(
+        name="Naik Wealth",
+        instructions=SYSTEM_PROMPT,
         model=model,
-        messages=messages,
-        response_format={"type": "json_schema", "json_schema": _JUSTIFY_JSON_SCHEMA},
-        temperature=0,
+        tools=WEALTH_TOOLS,
+        output_type=_WealthJustifications,
     )
-    payload = json.loads(second.choices[0].message.content or "{}")
-    return list(payload.get("fund_justifications", [])), str(payload.get("overall_rationale", ""))
+    result = Runner.run_sync(agent, f"{context}\n\n{instruction}")
+    out: _WealthJustifications = result.final_output
+    return list(out.fund_justifications), str(out.overall_rationale)
 
 
 # --------------------------------------------------------------------------- #
@@ -710,7 +692,11 @@ def run_wealth(
         sharia = False
     ranked = rank_funds(candidates, target_risk=target_risk, top_n=TOP_N)
 
-    use_model = (not force_heuristic) and bool(os.environ.get("OPENAI_API_KEY"))
+    use_model = (
+        (not force_heuristic)
+        and bool(os.environ.get("OPENAI_API_KEY"))
+        and AGENTS_SDK_AVAILABLE
+    )
     justifications: Optional[list[str]] = None
     overall: Optional[str] = None
     source = "heuristic"
@@ -734,6 +720,22 @@ def run_wealth(
         justifications=justifications,
         overall_rationale=overall,
     )
+
+    # Append a calendar-aware behavioural nudge to the overall rationale.
+    # The nudge is selected from design/prompts/nudges.json based on the
+    # persona's priority_gap and the current calendar context (flood season,
+    # Lebaran, payday week, post-bonus).  Falls back silently to "" so a
+    # missing or broken nudges.json never breaks the pipeline.
+    try:
+        from naik_agents.nudges import select_nudge
+        nudge = select_nudge(wellness, inp)
+        if nudge:
+            recommendation = recommendation.model_copy(
+                update={"rationale": f"{recommendation.rationale} {nudge}"}
+            )
+    except Exception:  # noqa: BLE001 — nudge is optional; never break the pipeline
+        pass
+
     return WealthResult(recommendation=recommendation, source=source)
 
 

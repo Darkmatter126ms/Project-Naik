@@ -1,0 +1,204 @@
+{
+  "status": "PASS",
+  "gate_lo": 2000,
+  "gate_hi": 50000,
+  "narrative_lo": 10000,
+  "narrative_hi": 45000,
+  "gate_pass": true,
+  "narrative_pass": false,
+  "kecamatan": "Penjaringan",
+  "flood_risk_score_original": 0.92,
+  "flood_risk_score_effective": 0.92,
+  "bmkg_fixture_patched": false,
+  "feature_vector": {
+    "income_decile": 7,
+    "flood_risk_score": 0.92,
+    "gig_worker": 1,
+    "household_size": 2
+  },
+  "glm": {
+    "raw_prediction": 3114911.9,
+    "calibration_constant": 0.009,
+    "target_loss_ratio": 0.6,
+    "expected_weekly_payout": 28034.21,
+    "gini_holdout": 0.46167421353870086,
+    "var_power": 1.5,
+    "n_train": 4000
+  },
+  "income_inference": {
+    "velocity_weekly_idr": 1387500,
+    "anchor_weekly_idr": 1384615,
+    "delta_pct": 0.208,
+    "daily_earnings_idr": 231250
+  },
+  "pricing": {
+    "weekly_premium_idr": 46724,
+    "monthly_premium_idr": 202471,
+    "payout_multiple": 4,
+    "payout_per_event_idr": 925000,
+    "premium_payout_ratio": 0.0505,
+    "pct_of_ceiling": 93.45,
+    "headroom_to_ceiling": 3276
+  },
+  "recalibration": {
+    "triggered": false,
+    "new_flood_risk_score": null,
+    "new_weekly_premium": null
+  },
+  "sensitivity_sweep": [
+    {
+      "flood_risk_score": 0.05,
+      "weekly_premium_idr": 4986,
+      "payout_per_event_idr": 462500,
+      "payout_multiple": 2,
+      "gate_pass": true,
+      "narrative_pass": false
+    },
+    {
+      "flood_risk_score": 0.102,
+      "weekly_premium_idr": 5699,
+      "payout_per_event_idr": 462500,
+      "payout_multiple": 2,
+      "gate_pass": true,
+      "narrative_pass": false
+    },
+    {
+      "flood_risk_score": 0.154,
+      "weekly_premium_idr": 6515,
+      "payout_per_event_idr": 462500,
+      "payout_multiple": 2,
+      "gate_pass": true,
+      "narrative_pass": false
+    },
+    {
+      "flood_risk_score": 0.207,
+      "weekly_premium_idr": 7466,
+      "payout_per_event_idr": 693750,
+      "payout_multiple": 3,
+      "gate_pass": true,
+      "narrative_pass": false
+    },
+    {
+      "flood_risk_score": 0.259,
+      "weekly_premium_idr": 8535,
+      "payout_per_event_idr": 693750,
+      "payout_multiple": 3,
+      "gate_pass": true,
+      "narrative_pass": false
+    },
+    {
+      "flood_risk_score": 0.311,
+      "weekly_premium_idr": 9756,
+      "payout_per_event_idr": 693750,
+      "payout_multiple": 3,
+      "gate_pass": true,
+      "narrative_pass": false
+    },
+    {
+      "flood_risk_score": 0.363,
+      "weekly_premium_idr": 11152,
+      "payout_per_event_idr": 693750,
+      "payout_multiple": 3,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.416,
+      "weekly_premium_idr": 12781,
+      "payout_per_event_idr": 693750,
+      "payout_multiple": 3,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.468,
+      "weekly_premium_idr": 14610,
+      "payout_per_event_idr": 693750,
+      "payout_multiple": 3,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.52,
+      "weekly_premium_idr": 16701,
+      "payout_per_event_idr": 693750,
+      "payout_multiple": 3,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.572,
+      "weekly_premium_idr": 19090,
+      "payout_per_event_idr": 693750,
+      "payout_multiple": 3,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.624,
+      "weekly_premium_idr": 21822,
+      "payout_per_event_idr": 925000,
+      "payout_multiple": 4,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.677,
+      "weekly_premium_idr": 25009,
+      "payout_per_event_idr": 925000,
+      "payout_multiple": 4,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.729,
+      "weekly_premium_idr": 28588,
+      "payout_per_event_idr": 925000,
+      "payout_multiple": 4,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.781,
+      "weekly_premium_idr": 32679,
+      "payout_per_event_idr": 925000,
+      "payout_multiple": 4,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.833,
+      "weekly_premium_idr": 37356,
+      "payout_per_event_idr": 925000,
+      "payout_multiple": 4,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.886,
+      "weekly_premium_idr": 42811,
+      "payout_per_event_idr": 925000,
+      "payout_multiple": 4,
+      "gate_pass": true,
+      "narrative_pass": true
+    },
+    {
+      "flood_risk_score": 0.938,
+      "weekly_premium_idr": 48938,
+      "payout_per_event_idr": 925000,
+      "payout_multiple": 4,
+      "gate_pass": true,
+      "narrative_pass": false
+    },
+    {
+      "flood_risk_score": 0.99,
+      "weekly_premium_idr": 55941,
+      "payout_per_event_idr": 925000,
+      "payout_multiple": 4,
+      "gate_pass": false,
+      "narrative_pass": false
+    }
+  ],
+  "demo_phrase_id": "\"Preminya Rp 46,724 per minggu (Rp 202,471 per bulan) — dan payout satu kejadian banjir di Penjaringan adalah Rp 925,000, sekitar 20× lebih besar dari premi.\"",
+  "recorded_at": "2026-06-04T10:02:42.388861+00:00"
+}

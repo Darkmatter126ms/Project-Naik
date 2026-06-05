@@ -1,0 +1,17 @@
+{
+  "status": "issued",
+  "polis_id": "MNI-PENJ-YARVL1",
+  "user_id": "sari",
+  "applicant_name": "Sari Dewi",
+  "kecamatan": "Penjaringan",
+  "trigger_metric": "rainfall_mm",
+  "trigger_threshold": 150,
+  "trigger_window_hours": 24,
+  "payout_per_event_idr": 925000,
+  "premium_idr": 46724,
+  "coverage_term_days": 90,
+  "start_date": "2026-06-04",
+  "end_date": "2026-09-02",
+  "requires_human_confirmation": true,
+  "issued_at": "2026-06-03T16:45:15.301Z"
+}

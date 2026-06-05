@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "description": "Behavioural nudge strings for the Naik wealth agent. 20 short Bahasa Indonesia messages, keyed first by wellness priority_gap and then by calendar context. The wealth agent selects the context-specific nudge if the persona's calendar matches, otherwise falls back to 'default'. Nudges are appended to the rationale — they are short, warm, and actionable, never preachy.",
+    "priority_gap_keys": ["risk_management", "emergency_fund", "liquidity", "growth", "diversification", "tax_efficiency", "behavioural_resilience"],
+    "calendar_context_keys": ["default", "flood_season", "payday_week", "post_bonus", "lebaran"],
+    "selection_rule": "nudges[priority_gap][calendar_context] → fallback to nudges[priority_gap]['default']",
+    "max_length_chars": 160
+  },
+  "nudges": {
+    "risk_management": {
+      "default":      "Proteksi penghasilan adalah langkah pertama — jauh lebih mudah mulai sebelum musibah tiba.",
+      "flood_season": "Musim hujan Jakarta berarti risiko banjir nyata. Proteksi penghasilan bisa menutup celah saat Anda tidak bisa bekerja.",
+      "payday_week":  "Baru gajian — ini saat paling tepat untuk sisihkan sedikit ke proteksi, sebelum uang terpakai untuk yang lain."
+    },
+    "emergency_fund": {
+      "default":     "Dana darurat tiga bulan pengeluaran adalah fondasi semua rencana keuangan — bangunnya dulu.",
+      "payday_week": "Gajian berarti kesempatan: transfer 10% ke rekening terpisah sekarang, sebelum sempat tergoda habiskan.",
+      "post_bonus":  "Bonus atau THR adalah lompatan langka — alokasikan sebagian untuk mencapai dana darurat tiga bulan sekaligus."
+    },
+    "liquidity": {
+      "default":     "Dana yang terkunci tidak bisa menolong saat darurat — pastikan selalu ada yang bisa cair dalam 24 jam.",
+      "payday_week": "Setelah gajian, cek apakah dana likuid Anda cukup untuk tiga bulan kebutuhan pokok. Kalau belum, ini saatnya.",
+      "post_bonus":  "Sebelum menginvestasikan bonus, pastikan dana likuid Anda sudah aman — likuiditas datang sebelum return."
+    },
+    "growth": {
+      "default":     "Mulai investasi lebih awal mengalahkan menunggu jumlah yang 'cukup besar' — waktu adalah modal utamanya.",
+      "lebaran":     "Setelah Lebaran adalah momen refleksi yang baik: uang THR yang diinvestasikan hari ini bisa tumbuh berlipat dalam 5 tahun.",
+      "post_bonus":  "Bonus yang Anda terima hari ini bisa menjadi modal pertumbuhan — investasikan sekarang, jangan tunggu nanti."
+    },
+    "diversification": {
+      "default":     "Satu reksa dana bukan portofolio — diversifikasi melindungi dari risiko ketika satu produk berkinerja buruk.",
+      "lebaran":     "Momen Lebaran adalah waktu yang baik untuk mengevaluasi portofolio dan menambah kelas aset yang belum ada.",
+      "post_bonus":  "Gunakan bonus untuk menambah kelas aset baru, bukan sekadar menambah ke produk yang sudah Anda miliki."
+    },
+    "tax_efficiency": {
+      "default":     "Instrumen seperti BPJS Ketenagakerjaan dan DPLK mengurangi pajak sekaligus membangun proteksi jangka panjang.",
+      "post_bonus":  "Bonus sering terkena potongan PPh lebih besar — pertimbangkan alokasi ke instrumen tax-efficient sebelum akhir tahun."
+    },
+    "behavioural_resilience": {
+      "default":      "Otomatisasi transfer ke tabungan atau investasi tiap tanggal gajian — disiplin yang tidak butuh kemauan.",
+      "lebaran":      "Musim diskon Lebaran memudahkan pengeluaran impulsif — tetapkan anggaran Lebaran tertulis sebelum mulai belanja.",
+      "flood_season": "Cuaca tidak menentu mengingatkan pentingnya membangun kebiasaan finansial yang tahan guncangan, bukan hanya dalam keadaan baik."
+    }
+  }
+}

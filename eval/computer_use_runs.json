@@ -1,0 +1,66 @@
+{
+  "mode": "playwright",
+  "runs": 3,
+  "successes": 3,
+  "all_passed": true,
+  "polis_ids": [
+    "MNI-PENJ-ZADJV9",
+    "MNI-PENJ-ZADLZR",
+    "MNI-PENJ-ZADO06"
+  ],
+  "fallback_screenshot": null,
+  "results": [
+    {
+      "status": "issued",
+      "polis_id": "MNI-PENJ-ZADJV9",
+      "user_id": "sari",
+      "applicant_name": "Sari Dewi",
+      "kecamatan": "Penjaringan",
+      "trigger_metric": "rainfall_mm",
+      "trigger_threshold": 150,
+      "trigger_window_hours": 24,
+      "payout_per_event_idr": 925000,
+      "premium_idr": 46724,
+      "coverage_term_days": 90,
+      "start_date": "2026-06-04",
+      "end_date": "2026-09-02",
+      "requires_human_confirmation": true,
+      "issued_at": "2026-06-04T09:21:53.109Z"
+    },
+    {
+      "status": "issued",
+      "polis_id": "MNI-PENJ-ZADLZR",
+      "user_id": "sari",
+      "applicant_name": "Sari Dewi",
+      "kecamatan": "Penjaringan",
+      "trigger_metric": "rainfall_mm",
+      "trigger_threshold": 150,
+      "trigger_window_hours": 24,
+      "payout_per_event_idr": 925000,
+      "premium_idr": 46724,
+      "coverage_term_days": 90,
+      "start_date": "2026-06-04",
+      "end_date": "2026-09-02",
+      "requires_human_confirmation": true,
+      "issued_at": "2026-06-04T09:21:55.863Z"
+    },
+    {
+      "status": "issued",
+      "polis_id": "MNI-PENJ-ZADO06",
+      "user_id": "sari",
+      "applicant_name": "Sari Dewi",
+      "kecamatan": "Penjaringan",
+      "trigger_metric": "rainfall_mm",
+      "trigger_threshold": 150,
+      "trigger_window_hours": 24,
+      "payout_per_event_idr": 925000,
+      "premium_idr": 46724,
+      "coverage_term_days": 90,
+      "start_date": "2026-06-04",
+      "end_date": "2026-09-02",
+      "requires_human_confirmation": true,
+      "issued_at": "2026-06-04T09:21:58.470Z"
+    }
+  ],
+  "recorded_at": "2026-06-04T09:21:59.196408+00:00"
+}

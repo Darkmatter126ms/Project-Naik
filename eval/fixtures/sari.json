@@ -1,0 +1,721 @@
+{
+  "user_id": "sari",
+  "locale": "id-ID",
+  "age": 26,
+  "monthly_income_idr": 6000000,
+  "kecamatan": "Penjaringan",
+  "city": "Jakarta",
+  "risk_tolerance": "conservative",
+  "household_size": 2,
+  "is_gig_worker": true,
+  "investment_horizon_years": 5.0,
+  "existing_holdings_idr": 100000,
+  "financial_goals": [
+    "dana darurat",
+    "perlindungan penghasilan",
+    "investasi syariah"
+  ],
+  "voice_transcript": "Saya kerja sebagai driver ojek online di Jakarta — penghasilan tidak tetap, kadang Rp 1,3 juta kadang Rp 1,5 juta per minggu tergantung cuaca dan ramai tidaknya pesanan. Kalau musim hujan dan jalan banjir, saya tidak bisa narik sama sekali dan penghasilan langsung berhenti. Saya hanya punya asuransi jiwa kredit dari kendaraan, tidak ada perlindungan kalau penghasilan berhenti karena bencana. Dua bulan lalu saya coba beli reksa dana pasar uang di Bibit lewat Shopee — Rp 100 ribu saja, lalu tidak saya lanjutkan karena bingung. Saya ingin mulai investasi yang sesuai syariah dan halal karena saya Muslim yang taat, tapi masih bingung berapa yang harus saya sisihkan tiap minggu dan produk apa yang paling cocok. Saya sering pesan GoFood dan belanja di Alfamart, dan kadang tergoda checkout di Shopee waktu ada diskon.",
+  "transactions": [
+    {
+      "transaction_id": "sari-001",
+      "timestamp": "2026-03-08T12:00:00Z",
+      "amount_idr": 1400000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk1",
+      "merchant": null,
+      "signed_amount_idr": 1400000
+    },
+    {
+      "transaction_id": "sari-002",
+      "timestamp": "2026-03-08T12:00:00Z",
+      "amount_idr": 38000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "pesan makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -38000
+    },
+    {
+      "transaction_id": "sari-003",
+      "timestamp": "2026-03-09T12:00:00Z",
+      "amount_idr": 95000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "belanja harian",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -95000
+    },
+    {
+      "transaction_id": "sari-004",
+      "timestamp": "2026-03-09T12:00:00Z",
+      "amount_idr": 180000,
+      "direction": "debit",
+      "category": "shopping",
+      "description": "Shopee checkout diskon",
+      "merchant": null,
+      "signed_amount_idr": -180000
+    },
+    {
+      "transaction_id": "sari-005",
+      "timestamp": "2026-03-10T12:00:00Z",
+      "amount_idr": 32000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -32000
+    },
+    {
+      "transaction_id": "sari-006",
+      "timestamp": "2026-03-11T12:00:00Z",
+      "amount_idr": 85000,
+      "direction": "debit",
+      "category": "transport",
+      "description": "bensin Pertamina",
+      "merchant": null,
+      "signed_amount_idr": -85000
+    },
+    {
+      "transaction_id": "sari-007",
+      "timestamp": "2026-03-12T12:00:00Z",
+      "amount_idr": 28000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "sarapan",
+      "merchant": "GoFood",
+      "signed_amount_idr": -28000
+    },
+    {
+      "transaction_id": "sari-008",
+      "timestamp": "2026-03-13T12:00:00Z",
+      "amount_idr": 35000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -35000
+    },
+    {
+      "transaction_id": "sari-009",
+      "timestamp": "2026-03-15T12:00:00Z",
+      "amount_idr": 1350000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk2",
+      "merchant": null,
+      "signed_amount_idr": 1350000
+    },
+    {
+      "transaction_id": "sari-010",
+      "timestamp": "2026-03-15T12:00:00Z",
+      "amount_idr": 40000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -40000
+    },
+    {
+      "transaction_id": "sari-011",
+      "timestamp": "2026-03-16T12:00:00Z",
+      "amount_idr": 310000,
+      "direction": "debit",
+      "category": "utilities_bills",
+      "description": "listrik + air",
+      "merchant": null,
+      "signed_amount_idr": -310000
+    },
+    {
+      "transaction_id": "sari-012",
+      "timestamp": "2026-03-17T12:00:00Z",
+      "amount_idr": 30000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -30000
+    },
+    {
+      "transaction_id": "sari-013",
+      "timestamp": "2026-03-18T12:00:00Z",
+      "amount_idr": 110000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "stok bulanan",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -110000
+    },
+    {
+      "transaction_id": "sari-014",
+      "timestamp": "2026-03-19T12:00:00Z",
+      "amount_idr": 28000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "sarapan",
+      "merchant": "GoFood",
+      "signed_amount_idr": -28000
+    },
+    {
+      "transaction_id": "sari-015",
+      "timestamp": "2026-03-20T12:00:00Z",
+      "amount_idr": 500000,
+      "direction": "debit",
+      "category": "loan_repayment",
+      "description": "SPayLater cicilan",
+      "merchant": null,
+      "signed_amount_idr": -500000
+    },
+    {
+      "transaction_id": "sari-016",
+      "timestamp": "2026-03-22T12:00:00Z",
+      "amount_idr": 1500000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk3",
+      "merchant": null,
+      "signed_amount_idr": 1500000
+    },
+    {
+      "transaction_id": "sari-017",
+      "timestamp": "2026-03-22T12:00:00Z",
+      "amount_idr": 45000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -45000
+    },
+    {
+      "transaction_id": "sari-018",
+      "timestamp": "2026-03-23T12:00:00Z",
+      "amount_idr": 280000,
+      "direction": "debit",
+      "category": "shopping",
+      "description": "sparepart motor (rantai + kampas rem)",
+      "merchant": null,
+      "signed_amount_idr": -280000
+    },
+    {
+      "transaction_id": "sari-019",
+      "timestamp": "2026-03-24T12:00:00Z",
+      "amount_idr": 35000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -35000
+    },
+    {
+      "transaction_id": "sari-020",
+      "timestamp": "2026-03-25T12:00:00Z",
+      "amount_idr": 105000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "belanja harian",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -105000
+    },
+    {
+      "transaction_id": "sari-021",
+      "timestamp": "2026-03-26T12:00:00Z",
+      "amount_idr": 30000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -30000
+    },
+    {
+      "transaction_id": "sari-022",
+      "timestamp": "2026-03-27T12:00:00Z",
+      "amount_idr": 80000,
+      "direction": "debit",
+      "category": "transport",
+      "description": "bensin",
+      "merchant": null,
+      "signed_amount_idr": -80000
+    },
+    {
+      "transaction_id": "sari-023",
+      "timestamp": "2026-03-29T12:00:00Z",
+      "amount_idr": 1300000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk4",
+      "merchant": null,
+      "signed_amount_idr": 1300000
+    },
+    {
+      "transaction_id": "sari-024",
+      "timestamp": "2026-03-30T12:00:00Z",
+      "amount_idr": 32000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -32000
+    },
+    {
+      "transaction_id": "sari-025",
+      "timestamp": "2026-03-31T12:00:00Z",
+      "amount_idr": 90000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "belanja",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -90000
+    },
+    {
+      "transaction_id": "sari-026",
+      "timestamp": "2026-04-05T12:00:00Z",
+      "amount_idr": 1400000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk5",
+      "merchant": null,
+      "signed_amount_idr": 1400000
+    },
+    {
+      "transaction_id": "sari-027",
+      "timestamp": "2026-04-05T12:00:00Z",
+      "amount_idr": 100000,
+      "direction": "debit",
+      "category": "investment",
+      "description": "reksa dana pasar uang (sekali)",
+      "merchant": "Bibit",
+      "signed_amount_idr": -100000
+    },
+    {
+      "transaction_id": "sari-028",
+      "timestamp": "2026-04-06T12:00:00Z",
+      "amount_idr": 38000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -38000
+    },
+    {
+      "transaction_id": "sari-029",
+      "timestamp": "2026-04-07T12:00:00Z",
+      "amount_idr": 28000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "sarapan",
+      "merchant": "GoFood",
+      "signed_amount_idr": -28000
+    },
+    {
+      "transaction_id": "sari-030",
+      "timestamp": "2026-04-08T12:00:00Z",
+      "amount_idr": 100000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "belanja harian",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -100000
+    },
+    {
+      "transaction_id": "sari-031",
+      "timestamp": "2026-04-09T12:00:00Z",
+      "amount_idr": 85000,
+      "direction": "debit",
+      "category": "transport",
+      "description": "bensin",
+      "merchant": null,
+      "signed_amount_idr": -85000
+    },
+    {
+      "transaction_id": "sari-032",
+      "timestamp": "2026-04-10T12:00:00Z",
+      "amount_idr": 33000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -33000
+    },
+    {
+      "transaction_id": "sari-033",
+      "timestamp": "2026-04-12T12:00:00Z",
+      "amount_idr": 1350000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk6",
+      "merchant": null,
+      "signed_amount_idr": 1350000
+    },
+    {
+      "transaction_id": "sari-034",
+      "timestamp": "2026-04-12T12:00:00Z",
+      "amount_idr": 42000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -42000
+    },
+    {
+      "transaction_id": "sari-035",
+      "timestamp": "2026-04-13T12:00:00Z",
+      "amount_idr": 315000,
+      "direction": "debit",
+      "category": "utilities_bills",
+      "description": "listrik",
+      "merchant": null,
+      "signed_amount_idr": -315000
+    },
+    {
+      "transaction_id": "sari-036",
+      "timestamp": "2026-04-14T12:00:00Z",
+      "amount_idr": 30000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -30000
+    },
+    {
+      "transaction_id": "sari-037",
+      "timestamp": "2026-04-15T12:00:00Z",
+      "amount_idr": 95000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "Alfamart",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -95000
+    },
+    {
+      "transaction_id": "sari-038",
+      "timestamp": "2026-04-16T12:00:00Z",
+      "amount_idr": 28000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "sarapan",
+      "merchant": "GoFood",
+      "signed_amount_idr": -28000
+    },
+    {
+      "transaction_id": "sari-039",
+      "timestamp": "2026-04-19T12:00:00Z",
+      "amount_idr": 1500000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk7",
+      "merchant": null,
+      "signed_amount_idr": 1500000
+    },
+    {
+      "transaction_id": "sari-040",
+      "timestamp": "2026-04-19T12:00:00Z",
+      "amount_idr": 45000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -45000
+    },
+    {
+      "transaction_id": "sari-041",
+      "timestamp": "2026-04-20T12:00:00Z",
+      "amount_idr": 150000,
+      "direction": "debit",
+      "category": "shopping",
+      "description": "Shopee checkout",
+      "merchant": null,
+      "signed_amount_idr": -150000
+    },
+    {
+      "transaction_id": "sari-042",
+      "timestamp": "2026-04-21T12:00:00Z",
+      "amount_idr": 35000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -35000
+    },
+    {
+      "transaction_id": "sari-043",
+      "timestamp": "2026-04-22T12:00:00Z",
+      "amount_idr": 115000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "stok mingguan",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -115000
+    },
+    {
+      "transaction_id": "sari-044",
+      "timestamp": "2026-04-23T12:00:00Z",
+      "amount_idr": 28000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "sarapan",
+      "merchant": "GoFood",
+      "signed_amount_idr": -28000
+    },
+    {
+      "transaction_id": "sari-045",
+      "timestamp": "2026-04-26T12:00:00Z",
+      "amount_idr": 1300000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk8",
+      "merchant": null,
+      "signed_amount_idr": 1300000
+    },
+    {
+      "transaction_id": "sari-046",
+      "timestamp": "2026-04-27T12:00:00Z",
+      "amount_idr": 35000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -35000
+    },
+    {
+      "transaction_id": "sari-047",
+      "timestamp": "2026-04-28T12:00:00Z",
+      "amount_idr": 500000,
+      "direction": "debit",
+      "category": "loan_repayment",
+      "description": "SPayLater cicilan",
+      "merchant": null,
+      "signed_amount_idr": -500000
+    },
+    {
+      "transaction_id": "sari-048",
+      "timestamp": "2026-04-29T12:00:00Z",
+      "amount_idr": 80000,
+      "direction": "debit",
+      "category": "transport",
+      "description": "bensin",
+      "merchant": null,
+      "signed_amount_idr": -80000
+    },
+    {
+      "transaction_id": "sari-049",
+      "timestamp": "2026-05-03T12:00:00Z",
+      "amount_idr": 1400000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk9",
+      "merchant": null,
+      "signed_amount_idr": 1400000
+    },
+    {
+      "transaction_id": "sari-050",
+      "timestamp": "2026-05-03T12:00:00Z",
+      "amount_idr": 38000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -38000
+    },
+    {
+      "transaction_id": "sari-051",
+      "timestamp": "2026-05-04T12:00:00Z",
+      "amount_idr": 100000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "belanja harian",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -100000
+    },
+    {
+      "transaction_id": "sari-052",
+      "timestamp": "2026-05-05T12:00:00Z",
+      "amount_idr": 30000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -30000
+    },
+    {
+      "transaction_id": "sari-053",
+      "timestamp": "2026-05-06T12:00:00Z",
+      "amount_idr": 28000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "sarapan",
+      "merchant": "GoFood",
+      "signed_amount_idr": -28000
+    },
+    {
+      "transaction_id": "sari-054",
+      "timestamp": "2026-05-07T12:00:00Z",
+      "amount_idr": 305000,
+      "direction": "debit",
+      "category": "utilities_bills",
+      "description": "listrik",
+      "merchant": null,
+      "signed_amount_idr": -305000
+    },
+    {
+      "transaction_id": "sari-055",
+      "timestamp": "2026-05-10T12:00:00Z",
+      "amount_idr": 1350000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk10",
+      "merchant": null,
+      "signed_amount_idr": 1350000
+    },
+    {
+      "transaction_id": "sari-056",
+      "timestamp": "2026-05-10T12:00:00Z",
+      "amount_idr": 40000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -40000
+    },
+    {
+      "transaction_id": "sari-057",
+      "timestamp": "2026-05-11T12:00:00Z",
+      "amount_idr": 85000,
+      "direction": "debit",
+      "category": "transport",
+      "description": "bensin",
+      "merchant": null,
+      "signed_amount_idr": -85000
+    },
+    {
+      "transaction_id": "sari-058",
+      "timestamp": "2026-05-12T12:00:00Z",
+      "amount_idr": 32000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -32000
+    },
+    {
+      "transaction_id": "sari-059",
+      "timestamp": "2026-05-13T12:00:00Z",
+      "amount_idr": 95000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "belanja Alfamart",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -95000
+    },
+    {
+      "transaction_id": "sari-060",
+      "timestamp": "2026-05-17T12:00:00Z",
+      "amount_idr": 1500000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk11",
+      "merchant": null,
+      "signed_amount_idr": 1500000
+    },
+    {
+      "transaction_id": "sari-061",
+      "timestamp": "2026-05-17T12:00:00Z",
+      "amount_idr": 45000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -45000
+    },
+    {
+      "transaction_id": "sari-062",
+      "timestamp": "2026-05-18T12:00:00Z",
+      "amount_idr": 120000,
+      "direction": "debit",
+      "category": "shopping",
+      "description": "Shopee checkout",
+      "merchant": null,
+      "signed_amount_idr": -120000
+    },
+    {
+      "transaction_id": "sari-063",
+      "timestamp": "2026-05-19T12:00:00Z",
+      "amount_idr": 35000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan siang",
+      "merchant": "GoFood",
+      "signed_amount_idr": -35000
+    },
+    {
+      "transaction_id": "sari-064",
+      "timestamp": "2026-05-20T12:00:00Z",
+      "amount_idr": 90000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "stok mingguan",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -90000
+    },
+    {
+      "transaction_id": "sari-065",
+      "timestamp": "2026-05-21T12:00:00Z",
+      "amount_idr": 500000,
+      "direction": "debit",
+      "category": "loan_repayment",
+      "description": "SPayLater cicilan",
+      "merchant": null,
+      "signed_amount_idr": -500000
+    },
+    {
+      "transaction_id": "sari-066",
+      "timestamp": "2026-05-24T12:00:00Z",
+      "amount_idr": 1300000,
+      "direction": "credit",
+      "category": "income",
+      "description": "ojek earnings wk12",
+      "merchant": null,
+      "signed_amount_idr": 1300000
+    },
+    {
+      "transaction_id": "sari-067",
+      "timestamp": "2026-05-25T12:00:00Z",
+      "amount_idr": 32000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "makan malam",
+      "merchant": "GoFood",
+      "signed_amount_idr": -32000
+    },
+    {
+      "transaction_id": "sari-068",
+      "timestamp": "2026-05-26T12:00:00Z",
+      "amount_idr": 80000,
+      "direction": "debit",
+      "category": "transport",
+      "description": "bensin",
+      "merchant": null,
+      "signed_amount_idr": -80000
+    },
+    {
+      "transaction_id": "sari-069",
+      "timestamp": "2026-05-27T12:00:00Z",
+      "amount_idr": 28000,
+      "direction": "debit",
+      "category": "food_beverage",
+      "description": "sarapan",
+      "merchant": "GoFood",
+      "signed_amount_idr": -28000
+    },
+    {
+      "transaction_id": "sari-070",
+      "timestamp": "2026-05-28T12:00:00Z",
+      "amount_idr": 100000,
+      "direction": "debit",
+      "category": "groceries",
+      "description": "belanja harian",
+      "merchant": "Alfamart",
+      "signed_amount_idr": -100000
+    }
+  ]
+}

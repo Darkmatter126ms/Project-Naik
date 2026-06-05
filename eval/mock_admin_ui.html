@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoneeInsure — Admin Portal: Penerbitan Polis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --green:  #00c853;
+    --green-d:#00a040;
+    --red:    #ff3b30;
+    --amber:  #ff9f0a;
+    --bg:     #0a0e13;
+    --surface:#111820;
+    --border: #1e2a36;
+    --text:   #e8edf2;
+    --muted:  #5a7080;
+    --mono:   'IBM Plex Mono', monospace;
+    --sans:   'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header bar ─────────────────────────────────────────── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-brand {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--green);
+    text-transform: uppercase;
+  }
+  .topbar-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    display: flex; gap: 24px;
+  }
+  .status-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100%{ opacity:1 } 50%{ opacity:.4 }
+  }
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 52px);
+  }
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+  }
+  .sidebar-section {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    color: var(--muted);
+    padding: 14px 20px 6px;
+    text-transform: uppercase;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .sidebar-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .sidebar-item.active {
+    color: var(--green);
+    border-left-color: var(--green);
+    background: rgba(0,200,83,.06);
+  }
+  .sidebar-icon { font-size: 14px; width:16px; text-align:center; }
+
+  /* ── Main content ────────────────────────────────────────── */
+  .main { padding: 32px 36px; max-width: 900px; }
+
+  .page-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .page-heading {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 28px;
+  }
+
+  /* ── Card ────────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,.015);
+  }
+  .card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .card-body { padding: 24px; }
+
+  /* ── Form grid ───────────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+  }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.span2 { grid-column: span 2; }
+
+  label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  label .required { color: var(--red); margin-left: 2px; }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color .15s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px rgba(0,200,83,.12);
+  }
+  select option { background: var(--surface); }
+  textarea { resize: vertical; min-height: 72px; }
+
+  .hint {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Trigger badge ───────────────────────────────────────── */
+  .trigger-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,200,83,.1);
+    border: 1px solid rgba(0,200,83,.3);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--green);
+    margin-top: 4px;
+  }
+
+  /* ── Summary table ───────────────────────────────────────── */
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-key { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+  .summary-val { font-weight: 500; }
+  .summary-val.green { color: var(--green); }
+  .summary-val.mono { font-family: var(--mono); }
+
+  /* ── Checkbox row ────────────────────────────────────────── */
+  .check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .check-row input[type="checkbox"] {
+    width: 16px; height: 16px;
+    margin-top: 2px;
+    accent-color: var(--green);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  button {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-primary {
+    background: var(--green);
+    color: #000;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--green-d); transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+  .btn-danger {
+    background: transparent;
+    border: 1px solid rgba(255,59,48,.4);
+    color: var(--red);
+  }
+  .btn-danger:hover { background: rgba(255,59,48,.1); }
+
+  /* ── Result panel ────────────────────────────────────────── */
+  #result-panel {
+    display: none;
+    margin-top: 24px;
+  }
+  .result-success {
+    border-color: rgba(0,200,83,.35) !important;
+    background: rgba(0,200,83,.05) !important;
+  }
+  .result-reject {
+    border-color: rgba(255,59,48,.35) !important;
+    background: rgba(255,59,48,.05) !important;
+  }
+  .result-heading {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .polis-id {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: rgba(0,200,83,.12);
+    color: var(--green);
+    border: 1px solid rgba(0,200,83,.3);
+    border-radius: 4px;
+    padding: 6px 12px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .log-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.8;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+  .log-block .ok  { color: var(--green); }
+  .log-block .err { color: var(--red); }
+  .log-block .ts  { color: #3a5060; }
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ────────────────────────────────────────────────── -->
+<div class="topbar">
+  <span class="topbar-brand">MoneeInsure · Admin Portal</span>
+  <div class="topbar-meta">
+    <span><span class="status-dot"></span>SISTEM ONLINE</span>
+    <span>OJK Reg. 05/POJK.05/2021</span>
+    <span id="clock">—</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- ── Sidebar ──────────────────────────────────────────────── -->
+  <nav class="sidebar">
+    <div class="sidebar-section">Dashboard</div>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">📊</span>Ringkasan</a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">📋</span>Antrian Polis</a>
+
+    <div class="sidebar-section">Penerbitan</div>
+    <a class="sidebar-item active" href="#"><span class="sidebar-icon">➕</span>Polis Baru</a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">🔍</span>Cari Polis</a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">♻️</span>Pembaruan</a>
+
+    <div class="sidebar-section">Klaim</div>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">⚡</span>Klaim Parametrik</a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">📁</span>Riwayat</a>
+
+    <div class="sidebar-section">Admin</div>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">🏢</span>Data Nasabah</a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">📤</span>Ekspor</a>
+  </nav>
+
+  <!-- ── Main ─────────────────────────────────────────────────── -->
+  <main class="main">
+    <div class="page-title">Penerbitan Polis</div>
+    <div class="page-heading">Formulir Penerbitan — Naik Income Shield</div>
+
+    <!-- Section 1: Identitas Nasabah -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">01 — Identitas Nasabah</span>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="applicant_name">Nama Lengkap <span class="required">*</span></label>
+            <input type="text" id="applicant_name" name="applicant_name"
+                   placeholder="Sesuai KTP" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="user_id">User ID (Shopee) <span class="required">*</span></label>
+            <input type="text" id="user_id" name="user_id"
+                   placeholder="cth. sari-ojek-001">
+          </div>
+          <div class="form-group">
+            <label for="applicant_age">Usia (tahun) <span class="required">*</span></label>
+            <input type="number" id="applicant_age" name="applicant_age"
+                   min="17" max="65" placeholder="17–65">
+          </div>
+          <div class="form-group">
+            <label for="kecamatan">Kecamatan Domisili <span class="required">*</span></label>
+            <select id="kecamatan" name="kecamatan">
+              <option value="">— pilih kecamatan —</option>
+              <option value="Penjaringan">Penjaringan</option>
+              <option value="Pluit">Pluit</option>
+              <option value="Muara Baru">Muara Baru</option>
+              <option value="Pademangan">Pademangan</option>
+              <option value="Koja">Koja</option>
+              <option value="Cilincing">Cilincing</option>
+              <option value="Marunda">Marunda</option>
+              <option value="Tanjung Priok">Tanjung Priok</option>
+              <option value="Kelapa Gading">Kelapa Gading</option>
+              <option value="Cakung">Cakung</option>
+              <option value="Cengkareng">Cengkareng</option>
+              <option value="Kembangan">Kembangan</option>
+              <option value="Kalideres">Kalideres</option>
+              <option value="Tambora">Tambora</option>
+              <option value="Tamansari">Tamansari</option>
+              <option value="Krukut">Krukut</option>
+              <option value="Palmerah">Palmerah</option>
+              <option value="Grogol Petamburan">Grogol Petamburan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="occupation">Pekerjaan <span class="required">*</span></label>
+            <select id="occupation" name="occupation">
+              <option value="">— pilih —</option>
+              <option value="ojek_online">Pengemudi Ojek Online</option>
+              <option value="kurir">Kurir / Pengemudi Pengiriman</option>
+              <option value="pedagang">Pedagang / UMKM</option>
+              <option value="freelancer">Pekerja Lepas (Freelancer)</option>
+              <option value="karyawan">Karyawan Tetap</option>
+              <option value="lainnya">Lainnya</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="is_gig_worker">Pekerja Gig / Informal</label>
+            <select id="is_gig_worker" name="is_gig_worker">
+              <option value="true">Ya — penghasilan tidak tetap</option>
+              <option value="false">Tidak — karyawan tetap</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Data Penghasilan -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">02 — Data Penghasilan</span>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="monthly_income_idr">Penghasilan Bulanan (Rp) <span class="required">*</span></label>
+            <input type="number" id="monthly_income_idr" name="monthly_income_idr"
+                   min="0" step="50000" placeholder="cth. 6000000">
+            <span class="hint">Gross, sebelum pengeluaran</span>
+          </div>
+          <div class="form-group">
+            <label for="estimated_daily_earnings_idr">Estimasi Penghasilan Harian (Rp) <span class="required">*</span></label>
+            <input type="number" id="estimated_daily_earnings_idr" name="estimated_daily_earnings_idr"
+                   min="0" step="10000" placeholder="Dihitung otomatis atau isi manual">
+            <span class="hint">Dari velocity transaksi Shopee</span>
+          </div>
+          <div class="form-group">
+            <label for="household_size">Jumlah Anggota Keluarga</label>
+            <input type="number" id="household_size" name="household_size"
+                   min="1" max="20" value="1">
+          </div>
+          <div class="form-group">
+            <label for="risk_profile">Profil Risiko <span class="required">*</span></label>
+            <select id="risk_profile" name="risk_profile">
+              <option value="conservative">Konservatif</option>
+              <option value="moderate">Moderat</option>
+              <option value="aggressive">Agresif</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Produk Asuransi -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">03 — Produk Perlindungan Parametrik</span>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="product_name">Nama Produk <span class="required">*</span></label>
+            <input type="text" id="product_name" name="product_name"
+                   value="Naik Income Shield" readonly
+                   style="opacity:.6; cursor:not-allowed;">
+          </div>
+          <div class="form-group">
+            <label for="coverage_term_days">Masa Pertanggungan (hari) <span class="required">*</span></label>
+            <select id="coverage_term_days" name="coverage_term_days">
+              <option value="30">30 hari (bulanan)</option>
+              <option value="90" selected>90 hari (kuartal)</option>
+              <option value="180">180 hari (semesteran)</option>
+              <option value="365">365 hari (tahunan)</option>
+            </select>
+          </div>
+
+          <!-- Trigger block -->
+          <div class="form-group span2">
+            <label>Pemicu Parametrik (BMKG) <span class="required">*</span></label>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:4px;">
+              <div class="form-group">
+                <label for="trigger_metric" style="font-size:9px;">Metrik</label>
+                <select id="trigger_metric" name="trigger_metric">
+                  <option value="rainfall_mm" selected>Curah Hujan (mm)</option>
+                  <option value="wind_speed_kmh">Kecepatan Angin (km/h)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="trigger_threshold" style="font-size:9px;">Ambang Batas</label>
+                <input type="number" id="trigger_threshold" name="trigger_threshold"
+                       min="1" step="10" placeholder="cth. 150">
+              </div>
+              <div class="form-group">
+                <label for="trigger_window" style="font-size:9px;">Jendela Observasi (jam)</label>
+                <input type="number" id="trigger_window" name="trigger_window"
+                       value="24" min="1">
+              </div>
+            </div>
+            <div class="trigger-badge" id="trigger-preview" style="display:none;">
+              <span>⚡</span>
+              <span id="trigger-preview-text"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="payout_multiple">Pengali Payout (× penghasilan harian) <span class="required">*</span></label>
+            <input type="number" id="payout_multiple" name="payout_multiple"
+                   min="1" max="30" step="0.5" value="4.0">
+          </div>
+          <div class="form-group">
+            <label for="payout_per_event_idr">Payout Per Kejadian (Rp) <span class="required">*</span></label>
+            <input type="number" id="payout_per_event_idr" name="payout_per_event_idr"
+                   min="1" step="1000" placeholder="Dihitung otomatis">
+          </div>
+          <div class="form-group">
+            <label for="max_payouts_per_term">Maks Klaim per Masa Pertanggungan <span class="required">*</span></label>
+            <input type="number" id="max_payouts_per_term" name="max_payouts_per_term"
+                   min="1" max="12" value="2">
+          </div>
+          <div class="form-group">
+            <label for="premium_idr">Premi (Rp / periode) <span class="required">*</span></label>
+            <input type="number" id="premium_idr" name="premium_idr"
+                   min="0" step="1000" placeholder="Dari GLM pricing kernel">
+          </div>
+          <div class="form-group">
+            <label for="premium_frequency">Frekuensi Premi <span class="required">*</span></label>
+            <select id="premium_frequency" name="premium_frequency">
+              <option value="monthly" selected>Bulanan</option>
+              <option value="per_term">Per Masa Pertanggungan</option>
+              <option value="annual">Tahunan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="start_date">Tanggal Mulai <span class="required">*</span></label>
+            <input type="date" id="start_date" name="start_date">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Ringkasan & Konfirmasi -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">04 — Ringkasan Polis</span>
+      </div>
+      <div class="card-body">
+        <div class="summary-row">
+          <span class="summary-key">Nasabah</span>
+          <span class="summary-val" id="sum-name">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Kecamatan</span>
+          <span class="summary-val" id="sum-kec">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Produk</span>
+          <span class="summary-val">Naik Income Shield (Parametrik)</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Pemicu</span>
+          <span class="summary-val mono" id="sum-trigger">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Payout / Kejadian</span>
+          <span class="summary-val green" id="sum-payout">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Premi</span>
+          <span class="summary-val" id="sum-premium">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Masa Pertanggungan</span>
+          <span class="summary-val" id="sum-term">—</span>
+        </div>
+
+        <div style="margin-top:20px; border-top: 1px solid var(--border); padding-top:20px;">
+          <div class="check-row">
+            <input type="checkbox" id="chk_ojk" name="chk_ojk">
+            <label for="chk_ojk" style="text-transform:none; font-size:13px; letter-spacing:0; cursor:pointer;">
+              Saya menyatakan produk ini <strong>hanya merupakan panduan umum</strong>,
+              bukan nasihat keuangan personal. Nasabah wajib melakukan konfirmasi manual
+              sebelum transaksi berlaku (OJK POJK 05/2021).
+            </label>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" id="chk_premium" name="chk_premium">
+            <label for="chk_premium" style="text-transform:none; font-size:13px; letter-spacing:0; cursor:pointer;">
+              Saya memverifikasi bahwa premi &lt; payout per kejadian
+              (guardrail anti mis-selling terpenuhi).
+            </label>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" id="chk_bmkg" name="chk_bmkg">
+            <label for="chk_bmkg" style="text-transform:none; font-size:13px; letter-spacing:0; cursor:pointer;">
+              Data BMKG untuk kecamatan yang dipilih telah diverifikasi dan
+              ambang batas pemicu sesuai histori cuaca setempat.
+            </label>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top:24px;">
+          <button class="btn-primary" id="btn-submit" onclick="submitForm()">
+            ✓ &nbsp;Terbitkan Polis
+          </button>
+          <button class="btn-secondary" onclick="resetForm()">
+            Reset
+          </button>
+          <button class="btn-danger" onclick="rejectForm()">
+            ✗ &nbsp;Tolak Pengajuan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Result panel (shown after submit) ────────────────── -->
+    <div id="result-panel" class="card">
+      <div class="card-body">
+        <div class="result-heading" id="result-heading">—</div>
+        <div class="polis-id" id="result-polis-id" style="display:none"></div>
+        <div id="result-details"></div>
+        <div class="log-block" id="result-log"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ── Clock ──────────────────────────────────────────────────── */
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) +
+    ' WIB';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ── Live summary sync ──────────────────────────────────────── */
+function fmt(n){ return 'Rp ' + parseInt(n||0).toLocaleString('id-ID'); }
+
+function syncSummary(){
+  document.getElementById('sum-name').textContent =
+    document.getElementById('applicant_name').value || '—';
+  document.getElementById('sum-kec').textContent =
+    document.getElementById('kecamatan').value || '—';
+
+  const metric   = document.getElementById('trigger_metric').value;
+  const thresh   = document.getElementById('trigger_threshold').value;
+  const window_h = document.getElementById('trigger_window').value;
+  const kec      = document.getElementById('kecamatan').value;
+  if(thresh && kec){
+    const metricLabel = metric === 'rainfall_mm'
+      ? `Curah Hujan ≥ ${thresh} mm/${window_h}h`
+      : `Angin ≥ ${thresh} km/h/${window_h}h`;
+    const triggerText = `${metricLabel} di ${kec}`;
+    document.getElementById('sum-trigger').textContent = triggerText;
+    document.getElementById('trigger-preview').style.display = 'inline-flex';
+    document.getElementById('trigger-preview-text').textContent = `Pemicu aktif: ${triggerText}`;
+  } else {
+    document.getElementById('sum-trigger').textContent = '—';
+    document.getElementById('trigger-preview').style.display = 'none';
+  }
+
+  const payout = document.getElementById('payout_per_event_idr').value;
+  document.getElementById('sum-payout').textContent = payout ? fmt(payout) : '—';
+
+  const premium = document.getElementById('premium_idr').value;
+  const freq    = document.getElementById('premium_frequency');
+  const freqLabel = freq.options[freq.selectedIndex]?.text || '';
+  document.getElementById('sum-premium').textContent = premium
+    ? fmt(premium) + ' / ' + freqLabel.toLowerCase() : '—';
+
+  const term = document.getElementById('coverage_term_days');
+  document.getElementById('sum-term').textContent =
+    term.options[term.selectedIndex]?.text || '—';
+}
+
+/* Auto-calculate payout when daily earnings or multiple changes */
+function calcPayout(){
+  const daily = parseFloat(document.getElementById('estimated_daily_earnings_idr').value) || 0;
+  const mult  = parseFloat(document.getElementById('payout_multiple').value) || 0;
+  if(daily > 0 && mult > 0){
+    document.getElementById('payout_per_event_idr').value = Math.round(daily * mult);
+  }
+  syncSummary();
+}
+
+/* Wire all inputs to syncSummary */
+document.querySelectorAll('input,select').forEach(el => {
+  el.addEventListener('input',  () => {
+    if(['estimated_daily_earnings_idr','payout_multiple'].includes(el.id)){
+      calcPayout();
+    } else {
+      syncSummary();
+    }
+  });
+  el.addEventListener('change', syncSummary);
+});
+
+/* ── Validation ─────────────────────────────────────────────── */
+function validate(){
+  const required = [
+    ['applicant_name','Nama Lengkap'],
+    ['user_id','User ID'],
+    ['applicant_age','Usia'],
+    ['kecamatan','Kecamatan'],
+    ['occupation','Pekerjaan'],
+    ['monthly_income_idr','Penghasilan Bulanan'],
+    ['estimated_daily_earnings_idr','Estimasi Penghasilan Harian'],
+    ['trigger_threshold','Ambang Batas Pemicu'],
+    ['payout_per_event_idr','Payout Per Kejadian'],
+    ['premium_idr','Premi'],
+    ['start_date','Tanggal Mulai'],
+  ];
+  for(const [id, label] of required){
+    const el = document.getElementById(id);
+    if(!el.value.trim()){
+      el.focus();
+      alert(`Harap isi: ${label}`);
+      return false;
+    }
+  }
+  const premium = parseInt(document.getElementById('premium_idr').value);
+  const payout  = parseInt(document.getElementById('payout_per_event_idr').value);
+  if(premium >= payout){
+    alert('Guardrail gagal: Premi harus lebih kecil dari Payout per Kejadian.');
+    return false;
+  }
+  if(!document.getElementById('chk_ojk').checked){
+    alert('Harap centang pernyataan panduan umum OJK.');
+    return false;
+  }
+  if(!document.getElementById('chk_premium').checked){
+    alert('Harap verifikasi guardrail premi < payout.');
+    return false;
+  }
+  if(!document.getElementById('chk_bmkg').checked){
+    alert('Harap verifikasi data BMKG.');
+    return false;
+  }
+  return true;
+}
+
+/* ── Generate polis ID ──────────────────────────────────────── */
+function genPolisId(){
+  const kec = document.getElementById('kecamatan').value.replace(/\s/g,'').toUpperCase().slice(0,4);
+  const ts  = Date.now().toString(36).toUpperCase().slice(-6);
+  return `MNI-${kec}-${ts}`;
+}
+
+/* ── Submit ─────────────────────────────────────────────────── */
+function submitForm(){
+  if(!validate()) return;
+
+  const polisId = genPolisId();
+  const name    = document.getElementById('applicant_name').value;
+  const kec     = document.getElementById('kecamatan').value;
+  const premium = parseInt(document.getElementById('premium_idr').value);
+  const payout  = parseInt(document.getElementById('payout_per_event_idr').value);
+  const metric  = document.getElementById('trigger_metric').value;
+  const thresh  = document.getElementById('trigger_threshold').value;
+  const window_h= document.getElementById('trigger_window').value;
+  const term    = document.getElementById('coverage_term_days').value;
+  const startDate = document.getElementById('start_date').value;
+  const userId  = document.getElementById('user_id').value;
+
+  const metricLabel = metric === 'rainfall_mm'
+    ? `rainfall_mm ≥ ${thresh} mm/${window_h}h`
+    : `wind_speed_kmh ≥ ${thresh} km/h/${window_h}h`;
+
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + parseInt(term));
+
+  const ts = new Date().toISOString();
+  const logLines = [
+    `[${ts}] <span class="ok">INFO</span>  Formulir terkirim oleh operator`,
+    `[${ts}] <span class="ok">INFO</span>  Validasi guardrail: premium(${premium}) < payout(${payout}) ✓`,
+    `[${ts}] <span class="ok">INFO</span>  OJK compliance check: panduan umum ✓`,
+    `[${ts}] <span class="ok">INFO</span>  BMKG trigger: ${metricLabel} di ${kec} ✓`,
+    `[${ts}] <span class="ok">INFO</span>  Polis ID diterbitkan: ${polisId}`,
+    `[${ts}] <span class="ok">INFO</span>  Nasabah: ${name} (user_id=${userId})`,
+    `[${ts}] <span class="ok">INFO</span>  Masa pertanggungan: ${startDate} → ${endDate.toISOString().slice(0,10)}`,
+    `[${ts}] <span class="ok">INFO</span>  requires_human_confirmation = True (wajib OJK)`,
+    `[${ts}] <span class="ok">SUCCESS</span> Polis ${polisId} DITERBITKAN — menunggu konfirmasi nasabah`,
+  ];
+
+  const panel = document.getElementById('result-panel');
+  panel.className = 'card result-success';
+  panel.style.display = 'block';
+
+  document.getElementById('result-heading').innerHTML =
+    `<span style="color:var(--green)">✓</span> Polis Berhasil Diterbitkan`;
+
+  const polisEl = document.getElementById('result-polis-id');
+  polisEl.textContent = polisId;
+  polisEl.style.display = 'inline-block';
+
+  document.getElementById('result-details').innerHTML = `
+    <div class="summary-row">
+      <span class="summary-key">Nomor Polis</span>
+      <span class="summary-val mono" style="color:var(--green)">${polisId}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Status</span>
+      <span class="summary-val green">DITERBITKAN — Menunggu Konfirmasi Nasabah</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Nasabah</span>
+      <span class="summary-val">${name}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Pemicu</span>
+      <span class="summary-val mono">${metricLabel} di ${kec}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Payout / Klaim</span>
+      <span class="summary-val green">${fmt(payout)}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Premi Bulanan</span>
+      <span class="summary-val">${fmt(premium)}</span>
+    </div>
+  `;
+
+  document.getElementById('result-log').innerHTML = logLines.join('\n');
+
+  // Expose result as a global for Computer Use agent to read
+  window.__naik_issuance_result = {
+    status: 'issued',
+    polis_id: polisId,
+    user_id: userId,
+    applicant_name: name,
+    kecamatan: kec,
+    trigger_metric: metric,
+    trigger_threshold: parseFloat(thresh),
+    trigger_window_hours: parseInt(window_h),
+    payout_per_event_idr: payout,
+    premium_idr: premium,
+    coverage_term_days: parseInt(term),
+    start_date: startDate,
+    end_date: endDate.toISOString().slice(0,10),
+    requires_human_confirmation: true,
+    issued_at: ts,
+  };
+
+  panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ── Reject ─────────────────────────────────────────────────── */
+function rejectForm(){
+  const reason = prompt('Alasan penolakan (wajib):');
+  if(!reason) return;
+
+  const panel = document.getElementById('result-panel');
+  panel.className = 'card result-reject';
+  panel.style.display = 'block';
+
+  document.getElementById('result-heading').innerHTML =
+    `<span style="color:var(--red)">✗</span> Pengajuan Ditolak`;
+  document.getElementById('result-polis-id').style.display = 'none';
+  document.getElementById('result-details').innerHTML = `
+    <div class="summary-row">
+      <span class="summary-key">Status</span>
+      <span class="summary-val" style="color:var(--red)">DITOLAK</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Alasan</span>
+      <span class="summary-val">${reason}</span>
+    </div>`;
+  const ts = new Date().toISOString();
+  document.getElementById('result-log').innerHTML =
+    `[${ts}] <span class="err">REJECT</span> Pengajuan ditolak oleh operator\n` +
+    `[${ts}] <span class="err">REJECT</span> Alasan: ${reason}`;
+
+  window.__naik_issuance_result = { status: 'rejected', reason };
+  panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ── Reset ──────────────────────────────────────────────────── */
+function resetForm(){
+  document.querySelectorAll('input:not([readonly]),select').forEach(el => {
+    if(el.type === 'checkbox') el.checked = false;
+    else if(el.id !== 'product_name') el.value = '';
+  });
+  document.getElementById('coverage_term_days').value = '90';
+  document.getElementById('trigger_metric').value = 'rainfall_mm';
+  document.getElementById('is_gig_worker').value = 'true';
+  document.getElementById('risk_profile').value = 'conservative';
+  document.getElementById('premium_frequency').value = 'monthly';
+  document.getElementById('max_payouts_per_term').value = '2';
+  document.getElementById('payout_multiple').value = '4.0';
+  document.getElementById('result-panel').style.display = 'none';
+  document.getElementById('trigger-preview').style.display = 'none';
+  syncSummary();
+}
+
+/* Initial sync */
+syncSummary();
+</script>
+</body>
+</html>

@@ -132,7 +132,7 @@ class RiskProfile(str, Enum):
     """Self-declared risk tolerance, mirroring Bibit's three-tier profile.
 
     The diagnostic agent maps this to a CRRA relative-risk-aversion coefficient
-    (gamma) when computing utility weights (see /agents/diagnostic.py).
+    (gamma) when computing utility weights (see /naik_agents/diagnostic.py).
     """
 
     CONSERVATIVE = "conservative"  # Konservatif
@@ -583,7 +583,7 @@ class InsuranceQuote(_Base):
     damage to insured *devices*, but not the user's *lost daily earnings* when a
     flood keeps her off the road. Payout sizes to a configurable multiple of the
     daily earnings inferred from Shopee transaction velocity; the premium is
-    priced by the Tweedie GLM (see /agents/pricing).
+    priced by the Tweedie GLM (see /naik_agents/pricing).
 
     Guardrail: a premium may never exceed the single-event payout it buys.
     """
