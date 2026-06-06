@@ -144,5 +144,14 @@
   "disclaimerParametric": "Asuransi parametrik membayar berdasarkan indeks cuaca BMKG, bukan penilaian kerugian individual.",
   "disclaimerRewritten": "Beberapa pernyataan telah disesuaikan agar tidak menjanjikan hasil atau jaminan tertentu.",
   "disclaimerSharia": "Terdapat dana yang belum tersertifikasi syariah; perlu tinjauan sebelum ditawarkan kepada investor syariah.",
-  "complianceRationale": "Semua keluaran ditinjau dan dibingkai sebagai panduan umum sesuai ketentuan OJK."
+  "complianceRationale": "Semua keluaran ditinjau dan dibingkai sebagai panduan umum sesuai ketentuan OJK.",
+  "intakePointersTitle": "Ceritakan tentang:",
+  "intakePointersJob": "Pekerjaan Anda — ojek online, pedagang, freelancer, karyawan?",
+  "intakePointersLocation": "Tempat tinggal Anda — kecamatan atau wilayah",
+  "intakePointersFinancialTitle": "Kondisi keuangan Anda:",
+  "intakePointersFinancialItem1": "Penghasilan bulanan (perkiraan kasar tidak apa-apa)",
+  "intakePointersFinancialItem2": "Apakah punya tabungan atau dana darurat?",
+  "intakePointersFinancialItem3": "Investasi apa saja — reksa dana, saham, emas?",
+  "intakePointersFinancialItem4": "Apakah sudah punya asuransi jenis apapun?",
+  "intakePointersFinancialItem5": "Kekhawatiran atau tujuan keuangan yang ingin dibahas"
 }
