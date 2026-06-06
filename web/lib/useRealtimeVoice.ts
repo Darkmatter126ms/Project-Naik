@@ -20,7 +20,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5050";
-const REALTIME_MODEL = "gpt-4o-realtime-preview";
+// GA model name. MUST match the model the backend mints the token against
+// (api/realtime.py REALTIME_MODEL / NAIK_REALTIME_MODEL) or the SDP call fails.
+const REALTIME_MODEL =
+  process.env.NEXT_PUBLIC_REALTIME_MODEL ?? "gpt-realtime";
 
 export type VoiceStatus =
   | "idle"
@@ -55,9 +58,9 @@ export function useRealtimeVoice({
   const cleanup = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
-    dcRef.current?.close();
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    pcRef.current?.close();
+    try { dcRef.current?.close(); } catch { /* ignore */ }
+    try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch { /* ignore */ }
+    try { pcRef.current?.close(); } catch { /* ignore */ }
     dcRef.current = null;
     streamRef.current = null;
     pcRef.current = null;
@@ -66,6 +69,7 @@ export function useRealtimeVoice({
   const stop = useCallback(() => {
     cleanup();
     setStatus("stopped");
+    setSecondsLeft(0);
     onTranscript?.(transcriptRef.current);
   }, [cleanup, onTranscript]);
 
@@ -91,8 +95,11 @@ export function useRealtimeVoice({
       });
       if (!tokenRes.ok) throw new Error(`token endpoint ${tokenRes.status}`);
       const data = await tokenRes.json();
-      const ephemeral = data.client_secret?.value ?? data.client_secret;
-      if (!ephemeral) throw new Error("no ephemeral token returned");
+      const ephemeral = data.value ?? data.client_secret?.value ?? data.client_secret;
+      if (!ephemeral) {
+        console.error("[useRealtimeVoice] token response:", data);
+        throw new Error("no ephemeral token returned — check Render logs for OPENAI_API_KEY / endpoint issues");
+      }
 
       // 2. Mic.
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -101,6 +108,13 @@ export function useRealtimeVoice({
       // 3. Peer connection + data channel.
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+          fail("Realtime connection dropped. Check network and try again.");
+        }
+      };
+
       pc.addTrack(stream.getAudioTracks()[0], stream);
 
       const dc = pc.createDataChannel("oai-events");
@@ -108,18 +122,24 @@ export function useRealtimeVoice({
 
       dc.onopen = () => {
         setStatus("listening");
+        // GA session.update shape: transcription + VAD live under audio.input.
+        // (Pre-GA used top-level input_audio_transcription / turn_detection.)
         dc.send(
           JSON.stringify({
             type: "session.update",
             session: {
-              modalities: ["audio", "text"],
+              type: "realtime",
               instructions:
                 "Anda hanya mendengarkan wawancara keuangan; jangan menjawab.",
-              input_audio_transcription: {
-                model: "gpt-4o-transcribe",
-                language: "id",
+              audio: {
+                input: {
+                  transcription: {
+                    model: "gpt-4o-transcribe",
+                    language: "id",
+                  },
+                  turn_detection: { type: "server_vad" },
+                },
               },
-              turn_detection: { type: "server_vad" },
             },
           }),
         );
@@ -172,13 +192,21 @@ export function useRealtimeVoice({
           },
         },
       );
-      if (!sdpRes.ok) throw new Error(`SDP exchange ${sdpRes.status}`);
+      if (!sdpRes.ok) {
+        const errBody = await sdpRes.text().catch(() => "");
+        throw new Error(`SDP exchange ${sdpRes.status}${errBody ? ": " + errBody.slice(0, 120) : ""}`);
+      }
       await pc.setRemoteDescription({
         type: "answer",
         sdp: await sdpRes.text(),
       });
     } catch (err) {
-      fail((err as Error).message);
+      const msg = (err as Error).message;
+      fail(
+        /permission|denied|not allowed/i.test(msg)
+          ? "Microphone access is blocked. Allow mic in browser settings, or use the cached audio button instead."
+          : msg,
+      );
     }
   }, [maxSeconds, stop, fail]);
 

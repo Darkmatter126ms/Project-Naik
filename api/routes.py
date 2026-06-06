@@ -197,3 +197,120 @@ def orchestrate():  # noqa: ANN202
             500,
         )
     return jsonify(result.model_dump(mode="json")), 200
+
+
+# --- /issue + /admin/issue-form -----------------------------------------------
+
+from pathlib import Path as _Path
+from flask import send_file as _send_file
+from .schemas import IssuanceRequest, IssuanceResponse  # noqa: E402
+
+
+@agents_bp.get("/admin/issue-form")
+def admin_issue_form():  # noqa: ANN202
+    """Serve the MoneeInsure mock admin UI at a stable Flask URL.
+
+    Both the Playwright driver (server-side) and the iframe (browser-side) use
+    this URL so there is a single source of HTML.  No X-Frame-Options is set,
+    which means any origin can embed the iframe — intentional for the
+    cross-origin Vercel → Render demo configuration.
+    """
+    html_path = _Path(__file__).resolve().parent.parent / "eval" / "mock_admin_ui.html"
+    return _send_file(html_path, mimetype="text/html", max_age=0)
+
+
+@agents_bp.post("/issue")
+def issue():  # noqa: ANN202
+    """Issue a MoneeInsure policy from a pre-computed InsuranceQuote + persona.
+
+    Request body: ``IssuanceRequest`` (quote + persona identity).
+    Returns: ``IssuanceResponse`` (form_data the iframe will animate + the
+    issuance result containing polis_id, status, timestamps, etc.)
+
+    Playwright is best-effort: if it is not installed on this host (Render
+    free tier does not include headless browsers), the endpoint still returns
+    200 with valid form_data and a server-generated polis_id so the iframe
+    can animate the fill theatrically without blocking the demo.
+    """
+    import time as _time
+    import datetime as _dt
+
+    # -- Parse + validate ------------------------------------------------------
+    body = request.get_json(silent=True) or {}
+    try:
+        req = IssuanceRequest.model_validate(body)
+    except Exception as exc:  # noqa: BLE001
+        return (
+            jsonify({"status": "error", "error": "validation_error", "detail": str(exc)}),
+            422,
+        )
+
+    # -- Build form data (deterministic — always succeeds) ---------------------
+    from naik_agents.computer_use import (
+        build_form_data_from_quote_and_persona,
+        assert_submittable,
+    )
+
+    quote_dict   = req.quote.model_dump(mode="json")
+    persona_dict = req.persona.model_dump(mode="json")
+
+    try:
+        form_data = build_form_data_from_quote_and_persona(quote_dict, persona_dict)
+        assert_submittable(form_data)
+    except ValueError as exc:
+        return (
+            jsonify({"status": "error", "error": "form_invalid", "detail": str(exc)}),
+            422,
+        )
+
+    # -- Generate a polis_id server-side (matches the admin UI's genPolisId()) --
+    def _server_polis_id(kecamatan: str) -> str:
+        """MNI-{KECfirst4}-{timestamp-base36-last6} — identical format to the UI."""
+        kec_prefix = kecamatan.replace(" ", "").upper()[:4]
+        ts = int(_time.time() * 1000)
+        chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        result = ""
+        n = ts
+        while n:
+            result = chars[n % 36] + result
+            n //= 36
+        ts_b36 = (result or "0")[-6:]
+        return f"MNI-{kec_prefix}-{ts_b36}"
+
+    kecamatan = req.quote.trigger.kecamatan
+    now_iso   = _dt.datetime.now(_dt.timezone.utc).isoformat()
+
+    # -- Best-effort Playwright issuance (skipped silently if not installed) ---
+    issuance: dict = {}
+    try:
+        from naik_agents.computer_use import run_issuance
+        issuance = run_issuance(form_data)
+    except Exception as exc:  # noqa: BLE001  – playwright absent or any error
+        logger.warning(
+            "playwright issuance skipped for user=%s (%s: %s) — using generated polis_id",
+            req.persona.user_id, type(exc).__name__, exc,
+        )
+
+    # -- If playwright succeeded, use its polis_id; otherwise generate one -----
+    if not issuance.get("polis_id"):
+        issuance = {
+            "status":                    "issued",
+            "polis_id":                  _server_polis_id(kecamatan),
+            "user_id":                   req.persona.user_id,
+            "applicant_name":            form_data.get("applicant_name", req.persona.user_id.title()),
+            "kecamatan":                 kecamatan,
+            "trigger_metric":            quote_dict["trigger"]["metric"],
+            "trigger_threshold":         quote_dict["trigger"]["threshold"],
+            "payout_per_event_idr":      req.quote.payout_per_event_idr,
+            "premium_idr":               req.quote.premium_idr,
+            "coverage_term_days":        req.quote.coverage_term_days,
+            "start_date":                form_data.get("start_date", now_iso[:10]),
+            "end_date":                  form_data.get("end_date", ""),
+            "requires_human_confirmation": True,
+            "issued_at":                 now_iso,
+            "source":                    "server_generated",
+        }
+
+    # -- Return ----------------------------------------------------------------
+    resp = IssuanceResponse(form_data=form_data, issuance=issuance)
+    return jsonify(resp.model_dump(mode="json")), 200

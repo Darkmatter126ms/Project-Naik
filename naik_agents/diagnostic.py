@@ -56,7 +56,43 @@ except ImportError:  # pragma: no cover - script/direct execution fallback
     from crra import crra_weights_table, gamma_for  # type: ignore
     from tools import AGENTS_SDK_AVAILABLE  # type: ignore
 
-DEFAULT_MODEL = os.environ.get("NAIK_DIAGNOSTIC_MODEL", "gpt-5.5")
+DEFAULT_MODEL = os.environ.get("NAIK_DIAGNOSTIC_MODEL", "gpt-4o-mini")
+
+
+# --------------------------------------------------------------------------- #
+# OpenAI client timeout (shared safety net)                                    #
+# --------------------------------------------------------------------------- #
+
+_client_timeout_set = False
+
+
+def _ensure_client_timeout() -> None:
+    """Configure the agents SDK's OpenAI client with a hard HTTP timeout.
+
+    The OpenAI SDK defaults to a 600-second timeout. With gunicorn's
+    --timeout 120 on Render, a slow model call would kill the worker (→ 502 with
+    no CORS headers) long before the SDK gives up. Setting a 15-second client
+    timeout + a single retry makes Runner.run_sync fail fast, so the model-path
+    try/except can fall back to the heuristic and the request always returns.
+
+    Idempotent: only the first call configures the client.
+    """
+    global _client_timeout_set
+    if _client_timeout_set:
+        return
+    if not os.environ.get("OPENAI_API_KEY"):
+        return
+    try:
+        from openai import AsyncOpenAI
+        from agents import set_default_openai_client
+
+        set_default_openai_client(
+            AsyncOpenAI(timeout=8.0, max_retries=1)
+        )
+        _client_timeout_set = True
+    except Exception:  # noqa: BLE001 - never let client config break the pipeline
+        pass
+
 
 # --------------------------------------------------------------------------- #
 # System prompt                                                               #
@@ -503,7 +539,26 @@ def _score_with_model(inp: DiagnosticInput, model: str) -> dict[str, float]:
         model=model,
         output_type=_WellnessScores,
     )
-    result = Runner.run_sync(agent, _build_user_message(inp))
+
+    # Hard 15-second ceiling on the model call.  Runner.run_sync has no built-in
+    # timeout; without this, a slow or hung OpenAI call keeps the thread alive
+    # until gunicorn's --timeout kills the worker with a 502.
+    # TimeoutError propagates to the outer except block → heuristic fallback.
+    # Hard 15-second ceiling on the model call. Runner.run_sync has no built-in
+    # timeout; the OpenAI SDK default is 600 s, which would let gunicorn's
+    # --timeout 120 kill the worker (→ 502, no CORS headers) long before the
+    # call returns. We do NOT use `with ThreadPoolExecutor` here: its __exit__
+    # calls shutdown(wait=True), which blocks on the hung thread and defeats the
+    # timeout entirely. Instead we shut down with wait=False, abandoning the
+    # (rare) hung thread so control returns within 15 s. The OpenAI client is
+    # also configured with its own timeout (see _ensure_client_timeout).
+    import concurrent.futures as _cf
+    _ensure_client_timeout()
+    _ex = _cf.ThreadPoolExecutor(max_workers=1)
+    try:
+        result = _ex.submit(Runner.run_sync, agent, _build_user_message(inp)).result(timeout=10)
+    finally:
+        _ex.shutdown(wait=False)
     scores: _WellnessScores = result.final_output
     return scores.model_dump()
 

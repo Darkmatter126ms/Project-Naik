@@ -4,7 +4,23 @@ import { useRouter } from "next/navigation";
 import { COPY } from "@/lib/copy";
 import { useLang } from "@/lib/useLang";
 import { useTheme } from "@/lib/useTheme";
-import { SARI_PERSONA_BASE, SARI_TRANSACTIONS } from "@/lib/fixtures";
+import {
+  PERSONAS,
+  PERSONA_BASES,
+  SARI_TRANSACTIONS,
+  BUDI_TRANSACTIONS,
+  AISYAH_TRANSACTIONS,
+} from "@/lib/fixtures";
+
+// 90-day transaction histories keyed by persona id.
+// Sari: 70-tx Shopee gig-worker history.
+// Budi: 74-tx salaried worker (KRL commute, GoFood, SPayLater cicilan).
+// Aisyah: 68-tx working mother (family groceries, school fees, halal Bibit investment).
+const PERSONA_TRANSACTIONS: Record<string, unknown[]> = {
+  sari:   SARI_TRANSACTIONS,
+  budi:   BUDI_TRANSACTIONS,
+  aisyah: AISYAH_TRANSACTIONS,
+};
 
 export default function HomePage() {
   const [lang, setLang] = useLang();
@@ -12,20 +28,24 @@ export default function HomePage() {
   const router = useRouter();
   const t = COPY[lang];
 
-  function selectSari() {
-    // Write Sari's full profile including her 70-transaction Shopee history
-    // so the diagnostic agent reads real spending patterns — not just transcript.
+  function selectPersona(personaId: string) {
+    const base = PERSONA_BASES[personaId];
+    if (!base) return;
     sessionStorage.setItem("naik_persona", JSON.stringify({
-      ...SARI_PERSONA_BASE,
-      transactions: SARI_TRANSACTIONS,
+      ...base,
+      transactions: PERSONA_TRANSACTIONS[personaId] ?? [],
     }));
     router.push("/intake");
   }
 
   function startDirect() {
-    // Clear any stale persona so the onboard form starts fresh
     sessionStorage.removeItem("naik_persona");
     router.push("/onboard");
+  }
+
+  // Avatar initial — first letter of persona name
+  function initial(name: string) {
+    return name.charAt(0).toUpperCase();
   }
 
   return (
@@ -51,46 +71,67 @@ export default function HomePage() {
         <p className="hero__body">{t.heroBody}</p>
       </div>
 
-      {/* Persona selector */}
+      {/* Persona selector — all three rendered dynamically */}
       <p className="section-label">{t.selectPersona}</p>
       <div className="persona-list">
-        <div className="persona-card">
-          <div className="persona-card__avatar">S</div>
-          <div className="persona-card__body">
-            <div className="persona-card__name-row">
-              <span className="persona-card__name">Sari Dewi</span>
-              <span className="persona-card__age">26 thn</span>
-              <span className="persona-card__gig">
-                {t.gigYes}
-              </span>
-            </div>
-            <div className="persona-card__stats">
-              <div className="stat">
-                <span className="stat__label">{t.incomeLabel}</span>
-                <span className="stat__value">Rp 6.000.000/bln</span>
-              </div>
-              <div className="stat">
-                <span className="stat__label">{t.locationLabel}</span>
-                <span className="stat__value">Penjaringan, Jakarta</span>
-              </div>
-              <div className="stat">
-                <span className="stat__label">{t.profileLabel}</span>
-                <span className="stat__value">Conservative · Syariah</span>
-              </div>
-            </div>
-            <p className="persona-card__meta">
-              {lang === "id"
-                ? "Pernah beli 1 reksa dana Bibit lewat Shopee lalu ghosting. Tidak punya asuransi selain credit-life SPayLater."
-                : "Bought one Bibit fund through Shopee, then went dark. Only coverage is the credit-life policy bundled with SPayLater."}
-            </p>
+        {PERSONAS.map((persona) => {
+          const base = PERSONA_BASES[persona.id] as Record<string, unknown>;
+          const isGig    = Boolean(base?.is_gig_worker);
+          const isHalal  = (base?.financial_goals as string[] | undefined)?.some(g =>
+            g.toLowerCase().includes("syariah"),
+          );
+          const income   = Number(base?.monthly_income_idr ?? 0).toLocaleString("id-ID");
+          const tagline  = lang === "id" ? persona.tagline_id : persona.tagline_en;
 
-            <div className="persona-card__actions">
-              <button className="btn btn--primary" onClick={selectSari}>
-                {t.useSari}
-              </button>
+          return (
+            <div key={persona.id} className="persona-card">
+              <div className="persona-card__avatar">{initial(persona.name)}</div>
+              <div className="persona-card__body">
+                <div className="persona-card__name-row">
+                  <span className="persona-card__name">{persona.name}</span>
+                  <span className="persona-card__age">{persona.age} thn</span>
+                  {isGig && (
+                    <span className="persona-card__gig">{t.gigYes}</span>
+                  )}
+                </div>
+
+                <div className="persona-card__stats">
+                  <div className="stat">
+                    <span className="stat__label">{t.incomeLabel}</span>
+                    <span className="stat__value">Rp {income}/bln</span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat__label">{t.locationLabel}</span>
+                    <span className="stat__value">{persona.kecamatan}, {persona.city}</span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat__label">{t.profileLabel}</span>
+                    <span className="stat__value">
+                      {persona.risk_tolerance === "conservative" ? t.riskConservativeTitle : persona.risk_tolerance === "moderate" ? t.riskModerateTitle : t.riskAggressiveTitle}
+                      {isHalal ? " · Syariah" : ""}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="persona-card__meta">{tagline}</p>
+
+                <div className="persona-card__actions">
+                  <button
+                    className="btn btn--primary"
+                    onClick={() => selectPersona(persona.id)}
+                  >
+                    {/* Re-use useSari label for Sari; generic label for others */}
+                    {persona.id === "sari"
+                      ? t.useSari
+                      : lang === "id"
+                        ? `Pilih ${persona.name}`
+                        : `Use ${persona.name}`}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Or speak directly */}

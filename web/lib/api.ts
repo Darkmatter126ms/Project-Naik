@@ -81,3 +81,76 @@ export async function postOrchestrate(
   }
   return (await resp.json()) as FinalResponse;
 }
+
+// ── Issuance types (mirror api/schemas.py) ──────────────────────────────────
+
+export interface PersonaIdentity {
+  user_id: string;
+  applicant_name?: string;
+  age: number;
+  monthly_income_idr: number;
+  kecamatan: string;
+  is_gig_worker: boolean;
+  risk_tolerance: string;
+  household_size: number;
+}
+
+export interface IssuanceRequest {
+  quote: import("./types").InsuranceQuote;
+  persona: PersonaIdentity;
+}
+
+export interface IssuanceResult {
+  status: string;
+  polis_id: string;
+  user_id: string;
+  applicant_name: string;
+  kecamatan: string;
+  trigger_metric: string;
+  trigger_threshold: number;
+  payout_per_event_idr: number;
+  premium_idr: number;
+  coverage_term_days: number;
+  start_date: string;
+  end_date: string;
+  requires_human_confirmation: boolean;
+  issued_at: string;
+}
+
+export interface IssuanceResponse {
+  form_data: Record<string, string>;
+  issuance: IssuanceResult;
+}
+
+/**
+ * POST /issue — issue a MoneeInsure policy from a pre-computed InsuranceQuote.
+ *
+ * The quote comes from FinalResponse.insurance (already in state on the
+ * results page) and the persona identity from sessionStorage('naik_persona_input').
+ * The backend runs the Playwright driver and returns form_data (for the iframe
+ * animation) plus the issuance result (polis_id etc.).
+ */
+export async function postIssue(
+  payload: IssuanceRequest,
+  signal?: AbortSignal,
+): Promise<IssuanceResponse> {
+  if (!API_BASE) throw new ApiError("NEXT_PUBLIC_API_BASE_URL is not set.");
+  let resp: Response;
+  try {
+    resp = await fetch(`${API_BASE}/issue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      signal,
+    });
+  } catch (err) {
+    throw new ApiError(`Network error reaching /issue: ${String(err)}`);
+  }
+  if (!resp.ok) {
+    let detail = "";
+    try { const b = await resp.json(); detail = b.detail ?? b.error ?? ""; } catch { /**/ }
+    throw new ApiError(`/issue returned HTTP ${resp.status}${detail ? `: ${detail}` : ""}`);
+  }
+  return (await resp.json()) as IssuanceResponse;
+}

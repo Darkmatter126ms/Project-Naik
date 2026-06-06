@@ -124,7 +124,10 @@ def _decide_next_step(
 
 
 def _assemble(
-    inp: DiagnosticInput, wellness: WellnessVector, comp: ComplianceResult
+    inp: DiagnosticInput,
+    wellness: WellnessVector,
+    comp: ComplianceResult,
+    insurance_skip_reason: Optional[str] = None,
 ) -> FinalResponse:
     """Fold the compliance-rewritten artefacts into a validated FinalResponse."""
     wealth_reco = comp.wealth                # compliance-rewritten (or None)
@@ -143,6 +146,7 @@ def _assemble(
         wellness=wellness,
         wealth=wealth_reco,
         insurance=quote,
+        insurance_skip_reason=insurance_skip_reason if quote is None else None,
         compliance=comp.verdict,
         narrative=narrative,
         next_step=next_step,
@@ -172,31 +176,91 @@ async def run_naik_async(
         force_heuristic: run every agent's deterministic path (CI/offline/demo).
     """
     # 1. Diagnostic first (downstream depends on the vector). In a thread so a
-    #    model-path network call never blocks the event loop.
-    diag = await asyncio.to_thread(
-        run_diagnostic, inp, model=model, force_heuristic=force_heuristic
-    )
-    wellness = diag.vector
+    #    model-path network call never blocks the event loop. wait_for caps it
+    #    even though run_diagnostic also has its own model-path timeout — this is
+    #    the orchestrator-level belt-and-suspenders so the diagnostic stage can
+    #    never hang the request (it runs before the wealth∥insurance gather and
+    #    is therefore not covered by that gather's wait_for below).
+    try:
+        diag = await asyncio.wait_for(
+            asyncio.to_thread(
+                run_diagnostic, inp, model=model, force_heuristic=force_heuristic
+            ),
+            timeout=25,
+        )
+        wellness = diag.vector
+    except asyncio.TimeoutError:
+        import logging as _logging
+        _logging.getLogger("naik.orchestrator").warning(
+            "diagnostic agent timed out for user=%s — using heuristic scorer.", inp.user_id
+        )
+        from naik_agents.diagnostic import run_diagnostic as _rd
+        diag = await asyncio.to_thread(_rd, inp, force_heuristic=True)
+        wellness = diag.vector
 
     # Resolve halal once; thread it into wealth and compliance identically.
     halal = resolve_sharia_only(inp, sharia_only)
 
     # 2. Wealth ∥ insurance — genuinely concurrent. return_exceptions so one
     #    agent failing degrades the response instead of killing it.
-    wealth_res, ins_res = await asyncio.gather(
-        asyncio.to_thread(
-            run_wealth, wellness, inp,
-            sharia_only=halal, model=model, force_heuristic=force_heuristic,
-        ),
-        asyncio.to_thread(
-            run_insurance, wellness, inp,
-            model=model, force_heuristic=force_heuristic,
-        ),
-        return_exceptions=True,
-    )
+    #    wait_for adds a hard ceiling: if the model path hangs (e.g. OpenAI slow
+    #    or rate-limited) the gather is cancelled after _AGENT_TIMEOUT_S seconds
+    #    and both results are treated as TimeoutError (→ None). This prevents
+    #    gunicorn's --timeout 120 from killing the worker with a 502.
+    _AGENT_TIMEOUT_S = 25  # well inside gunicorn's 120 s worker timeout
+    try:
+        wealth_res, ins_res = await asyncio.wait_for(
+            asyncio.gather(
+                asyncio.to_thread(
+                    run_wealth, wellness, inp,
+                    sharia_only=halal, model=model, force_heuristic=force_heuristic,
+                ),
+                asyncio.to_thread(
+                    run_insurance, wellness, inp,
+                    model=model, force_heuristic=force_heuristic,
+                ),
+                return_exceptions=True,
+            ),
+            timeout=_AGENT_TIMEOUT_S,
+        )
+    except asyncio.TimeoutError:
+        import logging as _logging
+        _logging.getLogger("naik.orchestrator").warning(
+            "wealth+insurance agents timed out after %ss for user=%s — "
+            "set NAIK_FORCE_HEURISTIC=true on Render to avoid this.",
+            _AGENT_TIMEOUT_S, inp.user_id,
+        )
+        wealth_res, ins_res = asyncio.TimeoutError(), asyncio.TimeoutError()
     wealth_reco = None if isinstance(wealth_res, BaseException) else wealth_res.recommendation
     quote = None if isinstance(ins_res, BaseException) else ins_res.quote
     ins_description = None if isinstance(ins_res, BaseException) else ins_res.bahasa_description
+    # Distinguish a deliberate skip (valid business decision, carries a
+    # skip_reason + Bahasa explanation) from an agent failure (exception → None).
+    # The frontend renders these very differently: skip → informative "optional
+    # cover" note; failure → error state. On failure we use a sentinel so the
+    # frontend never mistakes a crash for a deliberate skip.
+    if isinstance(ins_res, BaseException):
+        ins_skip_reason = "agent_error"
+    else:
+        ins_skip_reason = ins_res.skip_reason if ins_res.quote is None else None
+
+    # Surface any agent failures — previously these were silently swallowed by
+    # return_exceptions=True. Log at WARNING so Render logs always show why
+    # insurance or wealth might be missing from the FinalResponse.
+    import logging as _logging
+    _log = _logging.getLogger("naik.orchestrator")
+    if isinstance(wealth_res, BaseException):
+        _log.warning("wealth agent failed for user=%s: %s: %s",
+                     inp.user_id, type(wealth_res).__name__, wealth_res)
+    if isinstance(ins_res, BaseException):
+        _log.warning("insurance agent failed for user=%s: %s: %s",
+                     inp.user_id, type(ins_res).__name__, ins_res)
+    elif ins_res is not None and ins_res.quote is None:
+        # Deliberate skip (not an error) — log at INFO, not WARNING
+        _log.info(
+            "insurance not recommended for user=%s reason=%s",
+            inp.user_id, getattr(ins_res, "skip_reason", "unknown"),
+        )
 
     # 3. Compliance gate last — rewrites copy, emits the verdict.
     comp = run_compliance(
@@ -209,7 +273,7 @@ async def run_naik_async(
     )
 
     # 4. Assemble.
-    return _assemble(inp, wellness, comp)
+    return _assemble(inp, wellness, comp, insurance_skip_reason=ins_skip_reason)
 
 
 # --------------------------------------------------------------------------- #
@@ -230,7 +294,17 @@ def run_naik(
     from outside or inside a running event loop: with no loop we use
     ``asyncio.run``; inside one we run the async core on a dedicated thread so we
     never call ``asyncio.run`` from within a live loop.
+
+    ``NAIK_FORCE_HEURISTIC=true`` env var overrides ``force_heuristic`` for all
+    callers. Set this on Render for the demo so the pipeline always uses the fast
+    deterministic path (≈2–3 s) regardless of whether OPENAI_API_KEY is present.
+    Without it, agents call Runner.run_sync which has no built-in timeout and will
+    hang until gunicorn's --timeout kills the worker with a 502.
     """
+    # Env override — lets operators flip the path without touching code.
+    if os.environ.get("NAIK_FORCE_HEURISTIC", "").lower() in {"1", "true", "yes"}:
+        force_heuristic = True
+
     coro_kwargs = dict(sharia_only=sharia_only, model=model, force_heuristic=force_heuristic)
     try:
         asyncio.get_running_loop()

@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { COPY } from "@/lib/copy";
 import { useLang } from "@/lib/useLang";
+import { useTheme } from "@/lib/useTheme";
 
 const STREAMLIT_URL =
   process.env.NEXT_PUBLIC_STREAMLIT_URL ??
-  "https://naik-eval.streamlit.app";
+  "https://naikdashboard.streamlit.app";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -32,6 +33,7 @@ function fmtScore(v: number | null | undefined): string {
 
 export default function EvalPage() {
   const [lang, setLang] = useLang();
+  const [theme, toggleTheme] = useTheme();
   const router = useRouter();
   const t = COPY[lang];
 
@@ -80,6 +82,13 @@ export default function EvalPage() {
       <div className="lang-toggle">
         <button
           className="lang-btn"
+          onClick={toggleTheme}
+          aria-label="Toggle colour theme"
+        >
+          {theme === "dark" ? "☀" : "🌙"}
+        </button>
+        <button
+          className="lang-btn"
           onClick={() => setLang(lang === "id" ? "en" : "id")}
         >
           {t.langToggle}
@@ -105,9 +114,9 @@ export default function EvalPage() {
       {/* Persona count + timestamp — shown only when live data is available */}
       {summary?.status === "ok" && (
         <p className="eval-hint">
-          {summary.personas_evaluated} personas evaluated
+          {summary.personas_evaluated} {lang === "id" ? "persona dievaluasi" : "personas evaluated"}
           {summary.last_run
-            ? ` · last run ${new Date(summary.last_run).toLocaleString()}`
+            ? `${lang === "id" ? " · terakhir dijalankan" : " · last run"} ${new Date(summary.last_run).toLocaleString()}`
             : ""}
         </p>
       )}

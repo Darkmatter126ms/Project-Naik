@@ -115,6 +115,10 @@ export interface FinalResponse {
   wellness: WellnessVector;
   wealth?: WealthRecommendation;
   insurance?: InsuranceQuote;
+  // When insurance is absent, distinguishes a deliberate skip (e.g. "low_risk",
+  // "already_insured") from an agent failure ("agent_error"). null when a quote
+  // is present. The human-readable explanation is in `narrative`.
+  insurance_skip_reason?: string | null;
   compliance: ComplianceVerdict;
   narrative: string;
   next_step: NextStep;

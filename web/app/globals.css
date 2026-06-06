@@ -921,3 +921,28 @@ p, span, h1, h2, h3, h4, label {
   color: var(--fog);
   line-height: 1.5;
 }
+
+/* ── Skeleton loaders ────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--line) 25%, var(--line-2) 50%, var(--line) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.skeleton--title  { height: 12px; width: 40%; margin-bottom: 16px; }
+.skeleton--row    { height: 14px; margin-bottom: 12px; }
+.skeleton--narrative { height: 88px; border-radius: var(--radius); margin-bottom: 28px; width: 100%; }
+.skeleton-panel   { gap: 0 !important; min-height: 180px; }
+
+/* ── 1080p projected screen ──────────────────────────────────────────────── */
+@media (min-width: 1200px) {
+  .page          { max-width: 1100px; }
+  .results-grid  { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .panel--radar, .panel--wealth { grid-column: 1 / -1; }
+  .panel         { padding: 28px; }
+  .narrative-banner { padding: 22px 28px; }
+}

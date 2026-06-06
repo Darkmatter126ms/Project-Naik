@@ -26,6 +26,11 @@ services:
       # e.g. https://naik-web.vercel.app
       - key: CORS_ORIGINS
         value: "*"
+      # NAIK_FORCE_HEURISTIC: set "true" to skip OpenAI calls entirely (fast offline
+      # demo, no API cost). "false" uses gpt-4o-mini with a 15-second per-call
+      # timeout — if the call is slow it falls back to heuristic Bahasa automatically.
+      - key: NAIK_FORCE_HEURISTIC
+        value: "false"
       # Injected from the database below — no manual copy/paste required.
       - key: DATABASE_URL
         fromDatabase:

@@ -331,6 +331,12 @@
   .log-block .ok  { color: var(--green); }
   .log-block .err { color: var(--red); }
   .log-block .ts  { color: #3a5060; }
+/* postMessage auto-fill highlight — shows which field just changed */
+.autofill-highlight input,
+.autofill-highlight select {
+  outline: 2px solid var(--ok, #00ff90) !important;
+  transition: outline 0.4s ease-out;
+}
 </style>
 </head>
 <body>
@@ -339,7 +345,8 @@
 <div class="topbar">
   <span class="topbar-brand">MoneeInsure · Admin Portal</span>
   <div class="topbar-meta">
-    <span><span class="status-dot"></span>SISTEM ONLINE</span>
+    <span><span class="status-dot"></span><span data-i18n="systemOnline">SISTEM ONLINE</span></span>
+    <button id="lang-toggle" onclick="toggleLang()" style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-family:var(--mono);letter-spacing:0.08em;">EN</button>
     <span>OJK Reg. 05/POJK.05/2021</span>
     <span id="clock">—</span>
   </div>
@@ -370,17 +377,17 @@
   <!-- ── Main ─────────────────────────────────────────────────── -->
   <main class="main">
     <div class="page-title">Penerbitan Polis</div>
-    <div class="page-heading">Formulir Penerbitan — Naik Income Shield</div>
+    <div class="page-heading" data-i18n="pageHeading">Formulir Penerbitan — Naik Income Shield</div>
 
     <!-- Section 1: Identitas Nasabah -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">01 — Identitas Nasabah</span>
+        <span class="card-title" data-i18n="sec1">01 — Identitas Nasabah</span>
       </div>
       <div class="card-body">
         <div class="form-grid">
           <div class="form-group">
-            <label for="applicant_name">Nama Lengkap <span class="required">*</span></label>
+            <label for="applicant_name"><span data-i18n="lbl_name">Nama Lengkap</span> <span class="required">*</span></label>
             <input type="text" id="applicant_name" name="applicant_name"
                    placeholder="Sesuai KTP" autocomplete="off">
           </div>
@@ -390,51 +397,86 @@
                    placeholder="cth. sari-ojek-001">
           </div>
           <div class="form-group">
-            <label for="applicant_age">Usia (tahun) <span class="required">*</span></label>
+            <label for="applicant_age"><span data-i18n="lbl_age">Usia (tahun)</span> <span class="required">*</span></label>
             <input type="number" id="applicant_age" name="applicant_age"
                    min="17" max="65" placeholder="17–65">
           </div>
           <div class="form-group">
-            <label for="kecamatan">Kecamatan Domisili <span class="required">*</span></label>
+            <label for="kecamatan"><span data-i18n="lbl_kec">Kecamatan Domisili</span> <span class="required">*</span></label>
             <select id="kecamatan" name="kecamatan">
-              <option value="">— pilih kecamatan —</option>
-              <option value="Penjaringan">Penjaringan</option>
-              <option value="Pluit">Pluit</option>
-              <option value="Muara Baru">Muara Baru</option>
-              <option value="Pademangan">Pademangan</option>
-              <option value="Koja">Koja</option>
-              <option value="Cilincing">Cilincing</option>
-              <option value="Marunda">Marunda</option>
-              <option value="Tanjung Priok">Tanjung Priok</option>
-              <option value="Kelapa Gading">Kelapa Gading</option>
-              <option value="Cakung">Cakung</option>
-              <option value="Cengkareng">Cengkareng</option>
-              <option value="Kembangan">Kembangan</option>
-              <option value="Kalideres">Kalideres</option>
-              <option value="Tambora">Tambora</option>
-              <option value="Tamansari">Tamansari</option>
-              <option value="Krukut">Krukut</option>
-              <option value="Palmerah">Palmerah</option>
-              <option value="Grogol Petamburan">Grogol Petamburan</option>
+              <option value="" data-i18n-opt="opt_kec_placeholder">— pilih kecamatan —</option>
+              <optgroup label="Jakarta Utara">
+                <option value="Penjaringan">Penjaringan</option>
+                <option value="Pluit">Pluit</option>
+                <option value="Muara Baru">Muara Baru</option>
+                <option value="Pademangan">Pademangan</option>
+                <option value="Koja">Koja</option>
+                <option value="Cilincing">Cilincing</option>
+                <option value="Marunda">Marunda</option>
+                <option value="Tanjung Priok">Tanjung Priok</option>
+                <option value="Kelapa Gading">Kelapa Gading</option>
+                <option value="Cakung">Cakung</option>
+                <option value="Kapuk">Kapuk</option>
+              </optgroup>
+              <optgroup label="Jakarta Barat">
+                <option value="Cengkareng">Cengkareng</option>
+                <option value="Kembangan">Kembangan</option>
+                <option value="Kalideres">Kalideres</option>
+                <option value="Tambora">Tambora</option>
+                <option value="Tamansari">Tamansari</option>
+                <option value="Krukut">Krukut</option>
+                <option value="Palmerah">Palmerah</option>
+                <option value="Grogol Petamburan">Grogol Petamburan</option>
+                <option value="Asemrowo">Asemrowo</option>
+                <option value="Benowo">Benowo</option>
+              </optgroup>
+              <optgroup label="Jakarta Selatan">
+                <option value="Kebayoran Baru">Kebayoran Baru</option>
+                <option value="Kebayoran">Kebayoran</option>
+                <option value="Cilandak">Cilandak</option>
+                <option value="Pondok Indah">Pondok Indah</option>
+                <option value="Tebet">Tebet</option>
+                <option value="Duren Sawit">Duren Sawit</option>
+              </optgroup>
+              <optgroup label="Jakarta Pusat">
+                <option value="Menteng">Menteng</option>
+              </optgroup>
+              <optgroup label="Surabaya">
+                <option value="Gubeng">Gubeng</option>
+                <option value="Kenjeran">Kenjeran</option>
+                <option value="Krembangan">Krembangan</option>
+                <option value="Pabean Cantikan">Pabean Cantikan</option>
+                <option value="Rungkut">Rungkut</option>
+                <option value="Semampir">Semampir</option>
+                <option value="Wonokromo">Wonokromo</option>
+              </optgroup>
+              <optgroup label="Medan">
+                <option value="Medan Barat">Medan Barat</option>
+                <option value="Medan Baru">Medan Baru</option>
+                <option value="Medan Belawan">Medan Belawan</option>
+                <option value="Medan Deli">Medan Deli</option>
+                <option value="Medan Helvetia">Medan Helvetia</option>
+                <option value="Medan Labuhan">Medan Labuhan</option>
+              </optgroup>
             </select>
           </div>
           <div class="form-group">
-            <label for="occupation">Pekerjaan <span class="required">*</span></label>
+            <label for="occupation"><span data-i18n="lbl_occ">Pekerjaan</span> <span class="required">*</span></label>
             <select id="occupation" name="occupation">
-              <option value="">— pilih —</option>
-              <option value="ojek_online">Pengemudi Ojek Online</option>
-              <option value="kurir">Kurir / Pengemudi Pengiriman</option>
-              <option value="pedagang">Pedagang / UMKM</option>
-              <option value="freelancer">Pekerja Lepas (Freelancer)</option>
-              <option value="karyawan">Karyawan Tetap</option>
-              <option value="lainnya">Lainnya</option>
+              <option value="" data-i18n-opt="opt_select">— pilih —</option>
+              <option value="ojek_online" data-i18n-opt="opt_ojek">Pengemudi Ojek Online</option>
+              <option value="kurir" data-i18n-opt="opt_kurir">Kurir / Pengemudi Pengiriman</option>
+              <option value="pedagang" data-i18n-opt="opt_pedagang">Pedagang / UMKM</option>
+              <option value="freelancer" data-i18n-opt="opt_freelancer">Pekerja Lepas (Freelancer)</option>
+              <option value="karyawan" data-i18n-opt="opt_karyawan">Karyawan Tetap</option>
+              <option value="lainnya" data-i18n-opt="opt_lainnya">Lainnya</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="is_gig_worker">Pekerja Gig / Informal</label>
+            <label for="is_gig_worker"><span data-i18n="lbl_gig">Pekerja Gig / Informal</span></label>
             <select id="is_gig_worker" name="is_gig_worker">
-              <option value="true">Ya — penghasilan tidak tetap</option>
-              <option value="false">Tidak — karyawan tetap</option>
+              <option value="true" data-i18n-opt="opt_gig_yes">Ya — penghasilan tidak tetap</option>
+              <option value="false" data-i18n-opt="opt_gig_no">Tidak — karyawan tetap</option>
             </select>
           </div>
         </div>
@@ -444,33 +486,33 @@
     <!-- Section 2: Data Penghasilan -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">02 — Data Penghasilan</span>
+        <span class="card-title" data-i18n="sec2">02 — Data Penghasilan</span>
       </div>
       <div class="card-body">
         <div class="form-grid">
           <div class="form-group">
-            <label for="monthly_income_idr">Penghasilan Bulanan (Rp) <span class="required">*</span></label>
+            <label for="monthly_income_idr"><span data-i18n="lbl_income">Penghasilan Bulanan (Rp)</span> <span class="required">*</span></label>
             <input type="number" id="monthly_income_idr" name="monthly_income_idr"
                    min="0" step="50000" placeholder="cth. 6000000">
-            <span class="hint">Gross, sebelum pengeluaran</span>
+            <span class="hint"><span data-i18n="hint_gross">Gross, sebelum pengeluaran</span></span>
           </div>
           <div class="form-group">
-            <label for="estimated_daily_earnings_idr">Estimasi Penghasilan Harian (Rp) <span class="required">*</span></label>
+            <label for="estimated_daily_earnings_idr"><span data-i18n="lbl_daily">Estimasi Penghasilan Harian (Rp)</span> <span class="required">*</span></label>
             <input type="number" id="estimated_daily_earnings_idr" name="estimated_daily_earnings_idr"
                    min="0" step="10000" placeholder="Dihitung otomatis atau isi manual">
-            <span class="hint">Dari velocity transaksi Shopee</span>
+            <span class="hint"><span data-i18n="hint_velocity">Dari velocity transaksi Shopee</span></span>
           </div>
           <div class="form-group">
-            <label for="household_size">Jumlah Anggota Keluarga</label>
+            <label for="household_size"><span data-i18n="lbl_household">Jumlah Anggota Keluarga</span></label>
             <input type="number" id="household_size" name="household_size"
                    min="1" max="20" value="1">
           </div>
           <div class="form-group">
-            <label for="risk_profile">Profil Risiko <span class="required">*</span></label>
+            <label for="risk_profile"><span data-i18n="lbl_risk">Profil Risiko</span> <span class="required">*</span></label>
             <select id="risk_profile" name="risk_profile">
-              <option value="conservative">Konservatif</option>
-              <option value="moderate">Moderat</option>
-              <option value="aggressive">Agresif</option>
+              <option value="conservative" data-i18n-opt="opt_conservative">Konservatif</option>
+              <option value="moderate" data-i18n-opt="opt_moderate">Moderat</option>
+              <option value="aggressive" data-i18n-opt="opt_aggressive">Agresif</option>
             </select>
           </div>
         </div>
@@ -480,12 +522,12 @@
     <!-- Section 3: Produk Asuransi -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">03 — Produk Perlindungan Parametrik</span>
+        <span class="card-title" data-i18n="sec3">03 — Produk Perlindungan Parametrik</span>
       </div>
       <div class="card-body">
         <div class="form-grid">
           <div class="form-group">
-            <label for="product_name">Nama Produk <span class="required">*</span></label>
+            <label for="product_name"><span data-i18n="lbl_product">Nama Produk</span> <span class="required">*</span></label>
             <input type="text" id="product_name" name="product_name"
                    value="Naik Income Shield" readonly
                    style="opacity:.6; cursor:not-allowed;">
@@ -493,10 +535,10 @@
           <div class="form-group">
             <label for="coverage_term_days">Masa Pertanggungan (hari) <span class="required">*</span></label>
             <select id="coverage_term_days" name="coverage_term_days">
-              <option value="30">30 hari (bulanan)</option>
-              <option value="90" selected>90 hari (kuartal)</option>
-              <option value="180">180 hari (semesteran)</option>
-              <option value="365">365 hari (tahunan)</option>
+              <option value="30" data-i18n-opt="opt_30d">30 hari (bulanan)</option>
+              <option value="90" selected data-i18n-opt="opt_90d">90 hari (kuartal)</option>
+              <option value="180" data-i18n-opt="opt_180d">180 hari (semesteran)</option>
+              <option value="365" data-i18n-opt="opt_365d">365 hari (tahunan)</option>
             </select>
           </div>
 
@@ -505,14 +547,14 @@
             <label>Pemicu Parametrik (BMKG) <span class="required">*</span></label>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:4px;">
               <div class="form-group">
-                <label for="trigger_metric" style="font-size:9px;">Metrik</label>
+                <label for="trigger_metric" style="font-size:9px;"><span data-i18n="lbl_metric">Metrik</span></label>
                 <select id="trigger_metric" name="trigger_metric">
-                  <option value="rainfall_mm" selected>Curah Hujan (mm)</option>
-                  <option value="wind_speed_kmh">Kecepatan Angin (km/h)</option>
+                  <option value="rainfall_mm" selected data-i18n-opt="opt_rainfall">Curah Hujan (mm)</option>
+                  <option value="wind_speed_kmh" data-i18n-opt="opt_wind">Kecepatan Angin (km/h)</option>
                 </select>
               </div>
               <div class="form-group">
-                <label for="trigger_threshold" style="font-size:9px;">Ambang Batas</label>
+                <label for="trigger_threshold" style="font-size:9px;"><span data-i18n="lbl_threshold">Ambang Batas</span></label>
                 <input type="number" id="trigger_threshold" name="trigger_threshold"
                        min="1" step="10" placeholder="cth. 150">
               </div>
@@ -534,7 +576,7 @@
                    min="1" max="30" step="0.5" value="4.0">
           </div>
           <div class="form-group">
-            <label for="payout_per_event_idr">Payout Per Kejadian (Rp) <span class="required">*</span></label>
+            <label for="payout_per_event_idr"><span data-i18n="lbl_payout">Payout Per Kejadian (Rp)</span> <span class="required">*</span></label>
             <input type="number" id="payout_per_event_idr" name="payout_per_event_idr"
                    min="1" step="1000" placeholder="Dihitung otomatis">
           </div>
@@ -549,7 +591,7 @@
                    min="0" step="1000" placeholder="Dari GLM pricing kernel">
           </div>
           <div class="form-group">
-            <label for="premium_frequency">Frekuensi Premi <span class="required">*</span></label>
+            <label for="premium_frequency"><span data-i18n="lbl_freq">Frekuensi Premi</span> <span class="required">*</span></label>
             <select id="premium_frequency" name="premium_frequency">
               <option value="monthly" selected>Bulanan</option>
               <option value="per_term">Per Masa Pertanggungan</option>
@@ -557,7 +599,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="start_date">Tanggal Mulai <span class="required">*</span></label>
+            <label for="start_date"><span data-i18n="lbl_start">Tanggal Mulai</span> <span class="required">*</span></label>
             <input type="date" id="start_date" name="start_date">
           </div>
         </div>
@@ -567,15 +609,15 @@
     <!-- Section 4: Ringkasan & Konfirmasi -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">04 — Ringkasan Polis</span>
+        <span class="card-title" data-i18n="sec4">04 — Ringkasan Polis</span>
       </div>
       <div class="card-body">
         <div class="summary-row">
-          <span class="summary-key">Nasabah</span>
+          <span class="summary-key" data-i18n="sum_nasabah">Nasabah</span>
           <span class="summary-val" id="sum-name">—</span>
         </div>
         <div class="summary-row">
-          <span class="summary-key">Kecamatan</span>
+          <span class="summary-key" data-i18n="sum_kecamatan">Kecamatan</span>
           <span class="summary-val" id="sum-kec">—</span>
         </div>
         <div class="summary-row">
@@ -583,19 +625,19 @@
           <span class="summary-val">Naik Income Shield (Parametrik)</span>
         </div>
         <div class="summary-row">
-          <span class="summary-key">Pemicu</span>
+          <span class="summary-key" data-i18n="sum_pemicu">Pemicu</span>
           <span class="summary-val mono" id="sum-trigger">—</span>
         </div>
         <div class="summary-row">
-          <span class="summary-key">Payout / Kejadian</span>
+          <span class="summary-key" data-i18n="sum_payout">Payout / Kejadian</span>
           <span class="summary-val green" id="sum-payout">—</span>
         </div>
         <div class="summary-row">
-          <span class="summary-key">Premi</span>
+          <span class="summary-key" data-i18n="sum_premi">Premi</span>
           <span class="summary-val" id="sum-premium">—</span>
         </div>
         <div class="summary-row">
-          <span class="summary-key">Masa Pertanggungan</span>
+          <span class="summary-key" data-i18n="sum_term">Masa Pertanggungan</span>
           <span class="summary-val" id="sum-term">—</span>
         </div>
 
@@ -603,36 +645,36 @@
           <div class="check-row">
             <input type="checkbox" id="chk_ojk" name="chk_ojk">
             <label for="chk_ojk" style="text-transform:none; font-size:13px; letter-spacing:0; cursor:pointer;">
-              Saya menyatakan produk ini <strong>hanya merupakan panduan umum</strong>,
+              <span data-i18n="chk1">Saya menyatakan produk ini <strong>hanya merupakan panduan umum</strong>,
               bukan nasihat keuangan personal. Nasabah wajib melakukan konfirmasi manual
-              sebelum transaksi berlaku (OJK POJK 05/2021).
+              sebelum transaksi berlaku (OJK POJK 05/2021).</span>
             </label>
           </div>
           <div class="check-row">
             <input type="checkbox" id="chk_premium" name="chk_premium">
             <label for="chk_premium" style="text-transform:none; font-size:13px; letter-spacing:0; cursor:pointer;">
-              Saya memverifikasi bahwa premi &lt; payout per kejadian
-              (guardrail anti mis-selling terpenuhi).
+              <span data-i18n="chk2">Saya memverifikasi bahwa premi &lt; payout per kejadian
+              (guardrail anti mis-selling terpenuhi).</span>
             </label>
           </div>
           <div class="check-row">
             <input type="checkbox" id="chk_bmkg" name="chk_bmkg">
             <label for="chk_bmkg" style="text-transform:none; font-size:13px; letter-spacing:0; cursor:pointer;">
-              Data BMKG untuk kecamatan yang dipilih telah diverifikasi dan
-              ambang batas pemicu sesuai histori cuaca setempat.
+              <span data-i18n="chk3">Data BMKG untuk kecamatan yang dipilih telah diverifikasi dan
+              ambang batas pemicu sesuai histori cuaca setempat.</span>
             </label>
           </div>
         </div>
 
         <div class="btn-row" style="margin-top:24px;">
           <button class="btn-primary" id="btn-submit" onclick="submitForm()">
-            ✓ &nbsp;Terbitkan Polis
+            <span data-i18n="btn_issue">✓ &nbsp;Terbitkan Polis</span>
           </button>
           <button class="btn-secondary" onclick="resetForm()">
             Reset
           </button>
           <button class="btn-danger" onclick="rejectForm()">
-            ✗ &nbsp;Tolak Pengajuan
+            <span data-i18n="btn_reject">✗ &nbsp;Tolak Pengajuan</span>
           </button>
         </div>
       </div>
@@ -800,15 +842,15 @@ function submitForm(){
 
   const ts = new Date().toISOString();
   const logLines = [
-    `[${ts}] <span class="ok">INFO</span>  Formulir terkirim oleh operator`,
-    `[${ts}] <span class="ok">INFO</span>  Validasi guardrail: premium(${premium}) < payout(${payout}) ✓`,
-    `[${ts}] <span class="ok">INFO</span>  OJK compliance check: panduan umum ✓`,
+    `[${ts}] <span class="ok">INFO</span>  ${_LANG==="en"?"Form submitted by operator":"Formulir terkirim oleh operator"}`,
+    `[${ts}] <span class="ok">INFO</span>  ${_LANG==="en"?"Guardrail validation":"Validasi guardrail"}: premium(${premium}) < payout(${payout}) ✓`,
+    `[${ts}] <span class="ok">INFO</span>  OJK compliance check: ${_LANG==="en"?"general guidance":"panduan umum"} ✓`,
     `[${ts}] <span class="ok">INFO</span>  BMKG trigger: ${metricLabel} di ${kec} ✓`,
-    `[${ts}] <span class="ok">INFO</span>  Polis ID diterbitkan: ${polisId}`,
-    `[${ts}] <span class="ok">INFO</span>  Nasabah: ${name} (user_id=${userId})`,
-    `[${ts}] <span class="ok">INFO</span>  Masa pertanggungan: ${startDate} → ${endDate.toISOString().slice(0,10)}`,
-    `[${ts}] <span class="ok">INFO</span>  requires_human_confirmation = True (wajib OJK)`,
-    `[${ts}] <span class="ok">SUCCESS</span> Polis ${polisId} DITERBITKAN — menunggu konfirmasi nasabah`,
+    `[${ts}] <span class="ok">INFO</span>  ${_LANG==="en"?"Policy ID issued":"Polis ID diterbitkan"}: ${polisId}`,
+    `[${ts}] <span class="ok">INFO</span>  ${_LANG==="en"?"Applicant":"Nasabah"}: ${name} (user_id=${userId})`,
+    `[${ts}] <span class="ok">INFO</span>  ${_LANG==="en"?"Coverage period":"Masa pertanggungan"}: ${startDate} → ${endDate.toISOString().slice(0,10)}`,
+    `[${ts}] <span class="ok">INFO</span>  requires_human_confirmation = True (${_LANG==="en"?"mandatory OJK":"wajib OJK"})`,
+    `[${ts}] <span class="ok">SUCCESS</span> ${_LANG==="en"?"Policy":"Polis"} ${polisId} ${_LANG==="en"?"ISSUED — awaiting client confirmation":"DITERBITKAN — menunggu konfirmasi nasabah"}`,
   ];
 
   const panel = document.getElementById('result-panel');
@@ -816,7 +858,7 @@ function submitForm(){
   panel.style.display = 'block';
 
   document.getElementById('result-heading').innerHTML =
-    `<span style="color:var(--green)">✓</span> Polis Berhasil Diterbitkan`;
+    `<span style="color:var(--green)">✓</span> ${_LANG==="en"?"Policy Successfully Issued":"Polis Berhasil Diterbitkan"}`;
 
   const polisEl = document.getElementById('result-polis-id');
   polisEl.textContent = polisId;
@@ -824,27 +866,27 @@ function submitForm(){
 
   document.getElementById('result-details').innerHTML = `
     <div class="summary-row">
-      <span class="summary-key">Nomor Polis</span>
+      <span class="summary-key">${_LANG==="en"?"Policy No.":"Nomor Polis"}</span>
       <span class="summary-val mono" style="color:var(--green)">${polisId}</span>
     </div>
     <div class="summary-row">
       <span class="summary-key">Status</span>
-      <span class="summary-val green">DITERBITKAN — Menunggu Konfirmasi Nasabah</span>
+      <span class="summary-val green">${_LANG==="en"?"ISSUED — Awaiting Client Confirmation":"DITERBITKAN — Menunggu Konfirmasi Nasabah"}</span>
     </div>
     <div class="summary-row">
-      <span class="summary-key">Nasabah</span>
+      <span class="summary-key">${_LANG==="en"?"Applicant":"Nasabah"}</span>
       <span class="summary-val">${name}</span>
     </div>
     <div class="summary-row">
-      <span class="summary-key">Pemicu</span>
+      <span class="summary-key">${_LANG==="en"?"Trigger":"Pemicu"}</span>
       <span class="summary-val mono">${metricLabel} di ${kec}</span>
     </div>
     <div class="summary-row">
-      <span class="summary-key">Payout / Klaim</span>
+      <span class="summary-key">${_LANG==="en"?"Payout / Claim":"Payout / Klaim"}</span>
       <span class="summary-val green">${fmt(payout)}</span>
     </div>
     <div class="summary-row">
-      <span class="summary-key">Premi Bulanan</span>
+      <span class="summary-key">${_LANG==="en"?"Monthly Premium":"Premi Bulanan"}</span>
       <span class="summary-val">${fmt(premium)}</span>
     </div>
   `;
@@ -883,12 +925,12 @@ function rejectForm(){
   panel.style.display = 'block';
 
   document.getElementById('result-heading').innerHTML =
-    `<span style="color:var(--red)">✗</span> Pengajuan Ditolak`;
+    `<span style="color:var(--red)">✗</span> ${_LANG==="en"?"Application Rejected":"Pengajuan Ditolak"}`;
   document.getElementById('result-polis-id').style.display = 'none';
   document.getElementById('result-details').innerHTML = `
     <div class="summary-row">
       <span class="summary-key">Status</span>
-      <span class="summary-val" style="color:var(--red)">DITOLAK</span>
+      <span class="summary-val" style="color:var(--red)">${_LANG==="en"?"REJECTED":"DITOLAK"}</span>
     </div>
     <div class="summary-row">
       <span class="summary-key">Alasan</span>
@@ -924,5 +966,218 @@ function resetForm(){
 /* Initial sync */
 syncSummary();
 </script>
+
+<script>
+/* ── Bilingual support (ID / EN) ─────────────────────────────────────── */
+var _LANG = "id";
+
+var STRINGS = {
+  /* System */
+  systemOnline:  { id: "SISTEM ONLINE",                      en: "SYSTEM ONLINE" },
+  /* Page */
+  pageHeading:   { id: "Formulir Penerbitan — Naik Income Shield",
+                   en: "Issuance Form — Naik Income Shield" },
+  /* Sections */
+  sec1: { id: "01 — Identitas Nasabah",              en: "01 — Applicant Identity" },
+  sec2: { id: "02 — Data Penghasilan",               en: "02 — Income Data" },
+  sec3: { id: "03 — Produk Perlindungan Parametrik", en: "03 — Parametric Protection Product" },
+  sec4: { id: "04 — Ringkasan Polis",                en: "04 — Policy Summary" },
+  /* Labels */
+  lbl_name:      { id: "Nama Lengkap",                       en: "Full Name" },
+  lbl_age:       { id: "Usia (tahun)",                       en: "Age (years)" },
+  lbl_kec:       { id: "Kecamatan Domisili",                 en: "Home District" },
+  lbl_occ:       { id: "Pekerjaan",                          en: "Occupation" },
+  lbl_gig:       { id: "Pekerja Gig / Informal",            en: "Gig / Informal Worker" },
+  lbl_income:    { id: "Penghasilan Bulanan (Rp)",           en: "Monthly Income (IDR)" },
+  lbl_daily:     { id: "Estimasi Penghasilan Harian (Rp)",   en: "Est. Daily Earnings (IDR)" },
+  lbl_household: { id: "Jumlah Anggota Keluarga",            en: "Household Size" },
+  lbl_risk:      { id: "Profil Risiko",                      en: "Risk Profile" },
+  lbl_product:   { id: "Nama Produk",                        en: "Product Name" },
+  lbl_term:      { id: "Masa Pertanggungan (Hari)",          en: "Coverage Term (Days)" },
+  lbl_metric:    { id: "Metrik",                             en: "Metric" },
+  lbl_threshold: { id: "Ambang Batas",                       en: "Threshold" },
+  lbl_window:    { id: "Jendela Observasi (Jam)",            en: "Observation Window (h)" },
+  lbl_multiple:  { id: "Pengali Payout",                     en: "Payout Multiple" },
+  lbl_payout:    { id: "Payout Per Kejadian (Rp)",           en: "Payout Per Event (IDR)" },
+  lbl_maxclaim:  { id: "Maks. Klaim Per Masa Pertanggungan", en: "Max Claims Per Term" },
+  lbl_freq:      { id: "Frekuensi Premi",                    en: "Premium Frequency" },
+  lbl_start:     { id: "Tanggal Mulai",                      en: "Start Date" },
+  /* Hints */
+  hint_gross:    { id: "Gross, sebelum pengeluaran",          en: "Gross, before expenses" },
+  hint_velocity: { id: "Dari velocity transaksi Shopee",      en: "From Shopee transaction velocity" },
+  /* Buttons */
+  btn_issue:     { id: "✓ &nbsp;Terbitkan Polis",            en: "✓ &nbsp;Issue Policy" },
+  btn_reject:    { id: "✗ &nbsp;Tolak Pengajuan",            en: "✗ &nbsp;Reject Application" },
+  /* Disclaimers */
+  chk1: { id: 'Saya menyatakan produk ini <strong>hanya merupakan panduan umum</strong>, bukan nasihat keuangan personal. Nasabah wajib melakukan konfirmasi manual sebelum transaksi berlaku (OJK POJK 05/2021).',
+           en: 'I declare this product is <strong>general guidance only</strong>, not personalised financial advice. The client must confirm manually before any transaction takes effect (OJK POJK 05/2021).' },
+  chk2: { id: 'Saya memverifikasi bahwa premi &lt; payout per kejadian (guardrail anti mis-selling terpenuhi).',
+           en: 'I verify that premium &lt; payout per event (anti mis-selling guardrail satisfied).' },
+  chk3: { id: 'Data BMKG untuk kecamatan yang dipilih telah diverifikasi dan ambang batas pemicu sesuai histori cuaca setempat.',
+           en: 'BMKG data for the selected district has been verified and the trigger threshold matches local weather history.' },
+  /* Summary keys */
+  sum_nasabah:   { id: "Nasabah",             en: "Applicant" },
+  sum_kecamatan: { id: "Kecamatan",           en: "District" },
+  sum_pemicu:    { id: "Pemicu",              en: "Trigger" },
+  sum_payout:    { id: "Payout / Kejadian",   en: "Payout / Event" },
+  sum_premi:     { id: "Premi",               en: "Premium" },
+  sum_term:      { id: "Masa Pertanggungan",  en: "Coverage Term" },
+};
+
+var OPT_STRINGS = {
+  opt_kec_placeholder: { id: "— pilih kecamatan —",            en: "— select district —" },
+  opt_select:          { id: "— pilih —",                       en: "— select —" },
+  opt_ojek:            { id: "Pengemudi Ojek Online",           en: "Online Ojek Driver" },
+  opt_kurir:           { id: "Kurir / Pengemudi Pengiriman",    en: "Courier / Delivery Driver" },
+  opt_pedagang:        { id: "Pedagang / UMKM",                 en: "Street Trader / MSME" },
+  opt_freelancer:      { id: "Pekerja Lepas (Freelancer)",      en: "Freelancer" },
+  opt_karyawan:        { id: "Karyawan Tetap",                  en: "Salaried Employee" },
+  opt_lainnya:         { id: "Lainnya",                         en: "Other" },
+  opt_gig_yes:         { id: "Ya — penghasilan tidak tetap",    en: "Yes — irregular income" },
+  opt_gig_no:          { id: "Tidak — karyawan tetap",          en: "No — salaried employee" },
+  opt_conservative:    { id: "Konservatif",                     en: "Conservative" },
+  opt_moderate:        { id: "Moderat",                         en: "Moderate" },
+  opt_aggressive:      { id: "Agresif",                         en: "Aggressive" },
+  opt_30d:             { id: "30 hari (bulanan)",               en: "30 days (monthly)" },
+  opt_90d:             { id: "90 hari (kuartal)",               en: "90 days (quarterly)" },
+  opt_180d:            { id: "180 hari (semesteran)",           en: "180 days (bi-annual)" },
+  opt_365d:            { id: "365 hari (tahunan)",              en: "365 days (annual)" },
+  opt_rainfall:        { id: "Curah Hujan (mm)",                en: "Rainfall (mm)" },
+  opt_wind:            { id: "Kecepatan Angin (km/h)",          en: "Wind Speed (km/h)" },
+};
+
+function applyLang(lang) {
+  _LANG = lang;
+  /* Static text nodes */
+  document.querySelectorAll("[data-i18n]").forEach(function(el) {
+    var key = el.getAttribute("data-i18n");
+    if (STRINGS[key]) el.innerHTML = STRINGS[key][lang];
+  });
+  /* Select option text */
+  document.querySelectorAll("[data-i18n-opt]").forEach(function(el) {
+    var key = el.getAttribute("data-i18n-opt");
+    if (OPT_STRINGS[key]) el.textContent = OPT_STRINGS[key][lang];
+  });
+  /* Toggle button label */
+  var btn = document.getElementById("lang-toggle");
+  if (btn) btn.textContent = lang === "id" ? "EN" : "ID";
+}
+
+function toggleLang() {
+  applyLang(_LANG === "id" ? "en" : "id");
+}
+
+/* Bilingual result panel helpers used by submitForm / rejectForm */
+function t(key) {
+  return (STRINGS[key] || {})[_LANG] || key;
+}
+function to(key) {
+  return (OPT_STRINGS[key] || {})[_LANG] || key;
+}
+</script>
+
+<script>
+/**
+ * postMessage auto-fill listener — theatrical form fill for the demo.
+ *
+ * The results page opens this page in an iframe, posts a message once the
+ * Flask /issue endpoint returns the form_data, and this script fills every
+ * field with a short delay between fields so judges watch it populate in real
+ * time.  After all fields are set it ticks the three compliance checkboxes
+ * and clicks Issue Policy automatically.
+ *
+ * Message shape:
+ *   { type: "naik:autofill", formData: { field_id: "value", ... } }
+ *
+ * The parent posts with targetOrigin='*'; we guard on event.data.type.
+ */
+(function () {
+  "use strict";
+
+  // Fields to fill, in visual top-to-bottom order.  Each entry is either a
+  // text/number input id or a select id.  Checkboxes are handled separately.
+  const FIELD_ORDER = [
+    "applicant_name", "user_id", "applicant_age", "kecamatan",
+    "occupation", "is_gig_worker",
+    "monthly_income_idr", "estimated_daily_earnings_idr",
+    "household_size", "risk_profile",
+    "product_name", "coverage_term_days",
+    "trigger_metric", "trigger_threshold", "trigger_window",
+    "payout_multiple", "payout_per_event_idr",
+    "max_payouts_per_term", "premium_idr", "premium_frequency",
+    "start_date",
+  ];
+
+  const CHECKBOX_IDS = [
+    "confirm_general_guidance",
+    "confirm_guardrail",
+    "confirm_bmkg",
+  ];
+
+  // Delay between field fills (ms) — slow enough to be theatrical.
+  const INTER_FIELD_MS = 120;
+
+  function setField(id, value) {
+    const el = document.getElementById(id);
+    if (!el || value === undefined || value === null) return;
+    const tag = el.tagName.toLowerCase();
+    if (tag === "select") {
+      el.value = String(value);
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      // Flash the row so the audience sees which field just changed.
+      el.closest(".form-group")?.classList.add("autofill-highlight");
+      setTimeout(() => el.closest(".form-group")?.classList.remove("autofill-highlight"), 400);
+    } else {
+      el.value = String(value);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.closest(".form-group")?.classList.add("autofill-highlight");
+      setTimeout(() => el.closest(".form-group")?.classList.remove("autofill-highlight"), 400);
+    }
+  }
+
+  function fillForm(formData) {
+    let delay = 0;
+    FIELD_ORDER.forEach((id) => {
+      if (formData[id] !== undefined) {
+        setTimeout(() => setField(id, formData[id]), delay);
+        delay += INTER_FIELD_MS;
+      }
+    });
+
+    // Tick checkboxes after the fields.
+    setTimeout(() => {
+      CHECKBOX_IDS.forEach((id) => {
+        const cb = document.getElementById(id);
+        if (cb && !cb.checked) {
+          cb.checked = true;
+          cb.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+    }, delay + 200);
+
+    // Click Issue Policy after checkboxes.
+    setTimeout(() => {
+      const btn = document.querySelector(".btn-issue");
+      if (btn) btn.click();
+    }, delay + 600);
+  }
+
+  window.addEventListener("message", (event) => {
+    // Guard on type; do not validate origin so the cross-origin Vercel→Render
+    // iframe works without origin allow-listing.
+    if (!event.data || event.data.type !== "naik:autofill") return;
+    const formData = event.data.formData || {};
+    fillForm(formData);
+  });
+
+  // Signal readiness so the parent knows it can post the form_data.
+  window.addEventListener("load", () => {
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: "naik:ready" }, "*");
+    }
+  });
+})();
+</script>
+
 </body>
 </html>

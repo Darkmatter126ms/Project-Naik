@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 from pydantic import (
     BaseModel,
@@ -691,6 +691,16 @@ class FinalResponse(_Base):
     wellness: WellnessVector = Field(..., description="Diagnostic output (always present).")
     wealth: Optional[WealthRecommendation] = Field(None, description="Wealth recommendation, if any.")
     insurance: Optional[InsuranceQuote] = Field(None, description="Insurance quote, if any.")
+    insurance_skip_reason: Optional[str] = Field(
+        None,
+        description=(
+            "When `insurance` is None, distinguishes a deliberate skip "
+            "(e.g. 'low_risk', 'already_insured') from an agent failure (None). "
+            "The frontend uses this to show an informative 'optional cover' card "
+            "instead of an error state. The human-readable explanation is in "
+            "`narrative`."
+        ),
+    )
     compliance: ComplianceVerdict = Field(..., description="Compliance gate decision (always present).")
 
     narrative: str = Field(..., description="User-facing Bahasa summary of the guidance.")
@@ -709,3 +719,58 @@ class FinalResponse(_Base):
         if needs_insurance and self.insurance is None:
             raise ValueError(f"next_step={self.next_step.value!r} requires an `insurance` quote.")
         return self
+
+
+# ── Issuance schemas ──────────────────────────────────────────────────────────
+
+
+class PersonaIdentity(_Base):
+    """Minimal identity fields the frontend forwards from DiagnosticInput.
+
+    The results page reads these from ``sessionStorage('naik_persona_input')``
+    and bundles them with the ``InsuranceQuote`` into an ``IssuanceRequest``.
+    The backend uses them to fill the applicant section of the admin form —
+    fields that are not carried on the InsuranceQuote itself.
+    """
+
+    user_id: str = Field(..., description="Stable pseudonymous identifier (e.g. 'sari').")
+    applicant_name: Optional[str] = Field(
+        None,
+        description="Display name; defaults to user_id.title() if omitted.",
+    )
+    age: int = Field(..., ge=17, le=100)
+    monthly_income_idr: RupiahAmount
+    kecamatan: str
+    is_gig_worker: bool = False
+    risk_tolerance: RiskProfile = RiskProfile.MODERATE
+    household_size: int = Field(1, ge=1)
+
+
+class IssuanceRequest(_Base):
+    """Request body for ``POST /issue``.
+
+    The frontend sends the ``InsuranceQuote`` it already has (from
+    ``/orchestrate``) plus the persona identity fields it stored in
+    ``sessionStorage('naik_persona_input')``.  The backend issues the policy
+    via the Playwright driver without re-running the full pipeline.
+    """
+
+    quote: InsuranceQuote
+    persona: PersonaIdentity
+
+
+class IssuanceResponse(_Base):
+    """Response from ``POST /issue``.
+
+    ``form_data`` is the exact dict of field-id → value that was filled into
+    the admin form — the frontend uses it to animate the same fill in the
+    iframe so judges see the form populating in real time.  ``issuance`` is the
+    result record written by the Playwright driver (polis_id, status, etc.).
+    """
+
+    form_data: dict[str, str] = Field(
+        ..., description="Exact field values filled into the MoneeInsure admin form."
+    )
+    issuance: dict[str, Any] = Field(
+        ..., description="Issuance result from the Playwright driver."
+    )

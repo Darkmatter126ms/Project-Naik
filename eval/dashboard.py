@@ -1,17 +1,21 @@
-"""eval/dashboard.py — Naik evaluation demo dashboard.
+"""eval/streamlit_app.py — Naik evaluation dashboard.
 
-Single-page view optimised for hackathon presentation:
-  • 4 metric numbers large enough to read from across a room.
-  • Compact 50-persona score table; click any row to drill down.
-  • Full agent-output detail panel (wellness radar, fund picks,
-    insurance trigger, narrative) for the selected persona.
+Three tabs:
+  Overview  — 50-persona summary metrics, KPI cards, colour-coded score table.
+  Persona   — Individual drill-down: all agent outputs for one run.
+  Flags     — Violation filter + downloadable markdown flag report for Allen.
 
 Deploy on Streamlit Community Cloud
 ────────────────────────────────────
-  Main file path  : eval/dashboard.py
+  Main file path  : eval/streamlit_app.py
   Requirements    : eval/requirements.txt
-  Secrets (TOML)  : DATABASE_URL = "postgresql://..."
+  Secrets (TOML)  : [secrets]
+                    DATABASE_URL = "postgresql://user:pass@host:5432/naik"
                     API_BASE_URL = "https://naik-api.onrender.com"
+
+The dashboard is read-only. It queries the eval_runs and personas tables
+written by run_eval.py. Violation detection is reproduced independently so
+the dashboard deploys without the Naik source tree on the Python path.
 """
 
 from __future__ import annotations
@@ -20,77 +24,35 @@ import os
 from datetime import datetime, timezone
 
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import streamlit as st
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Page config — collapsed sidebar so the demo starts full-width
+# Config
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Naik · Eval",
+    page_title="Naik · Eval Dashboard",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 _DB_URL   = st.secrets.get("DATABASE_URL",  os.environ.get("DATABASE_URL", ""))
 _API_BASE = st.secrets.get("API_BASE_URL",  os.environ.get("API_BASE_URL", "http://localhost:5050"))
 
-# ─────────────────────────────────────────────────────────────────────────────
-# CSS — metric card numbers are 4 rem; everything else scales with the browser
-# ─────────────────────────────────────────────────────────────────────────────
-
-st.markdown("""
-<style>
-/* ── metric cards ─────────────────────────────────────────────────────────── */
-.metric-card {
-    background  : rgba(255,255,255,0.04);
-    border      : 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding     : 2.25rem 1.25rem 2rem;
-    text-align  : center;
+_METRICS = ["suitability", "fund_rank_correctness", "claim_trigger_precision", "do_no_harm"]
+_METRIC_LABELS = {
+    "suitability":             "Suitability",
+    "fund_rank_correctness":   "Fund-rank",
+    "claim_trigger_precision": "Trigger precision",
+    "do_no_harm":              "Do-no-harm",
+    "overall":                 "Overall",
 }
-.metric-value {
-    font-size   : 4rem;
-    font-weight : 900;
-    line-height : 1;
-    letter-spacing: -2px;
-    font-variant-numeric: tabular-nums;
-}
-.metric-label {
-    font-size   : 0.68rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color       : rgba(255,255,255,0.45);
-    margin-top  : 0.65rem;
-}
-.metric-sub {
-    font-size   : 0.62rem;
-    color       : rgba(255,255,255,0.25);
-    margin-top  : 0.2rem;
-}
-/* ── section header ───────────────────────────────────────────────────────── */
-.section-header {
-    font-size   : 0.7rem;
-    font-weight : 600;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color       : rgba(255,255,255,0.35);
-    margin-bottom: 0.5rem;
-}
-/* ── drill-down container ─────────────────────────────────────────────────── */
-.drill-container {
-    background  : rgba(255,255,255,0.03);
-    border      : 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px;
-    padding     : 1.5rem;
-    margin-top  : 0.5rem;
-}
-</style>
-""", unsafe_allow_html=True)
-
+_SCORE_GOOD = 0.90
+_SCORE_WARN = 0.70
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Database
@@ -98,6 +60,7 @@ st.markdown("""
 
 @st.cache_resource(show_spinner=False)
 def _get_engine():
+    """Return an SQLAlchemy engine, or None if DATABASE_URL is unset."""
     if not _DB_URL:
         return None
     try:
@@ -107,13 +70,17 @@ def _get_engine():
             pass
         return engine
     except Exception as exc:
-        st.error(f"DB connection failed: {exc}")
+        st.error(f"Database connection failed: {exc}")
         return None
 
 
-_QUERY = """
+# Latest eval run per persona, joined to persona metadata.
+# DISTINCT ON (persona_id) ordered by created_at DESC gives the most recent
+# run so repeated run_eval.py executions don't double-count.
+_MAIN_QUERY = """
 WITH latest AS (
     SELECT DISTINCT ON (persona_id)
+        id,
         persona_id,
         agent_outputs,
         scores,
@@ -122,6 +89,7 @@ WITH latest AS (
     ORDER BY persona_id, created_at DESC NULLS LAST
 )
 SELECT
+    p.id::text                                        AS persona_uuid,
     p.data->>'user_id'                                AS user_id,
     p.data->>'kecamatan'                              AS kecamatan,
     p.data->>'city'                                   AS city,
@@ -147,419 +115,686 @@ JOIN personas p ON l.persona_id = p.id
 ORDER BY p.data->>'user_id'
 """
 
-_SCORE_COLS = ["suitability", "fund_rank_correctness",
-               "claim_trigger_precision", "do_no_harm", "overall"]
 
-
-@st.cache_data(ttl=180, show_spinner="Fetching eval data…")
-def load_data() -> pd.DataFrame:
+@st.cache_data(ttl=300, show_spinner="Loading eval data…")
+def load_eval_data() -> pd.DataFrame | None:
+    """Return a DataFrame of the latest eval run per persona, or None."""
     engine = _get_engine()
     if engine is None:
-        return pd.DataFrame()
+        return None
     try:
-        df = pd.read_sql(_QUERY, engine)
-        for col in _SCORE_COLS + ["flood_risk_score"]:
+        df = pd.read_sql(_MAIN_QUERY, engine)
+        if df.empty:
+            return df
+        for col in _METRICS + ["overall", "flood_risk_score"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
+        df["response_ms"] = pd.to_numeric(df["response_ms"], errors="coerce")
         return df
     except Exception as exc:
         st.error(f"Query failed: {exc}")
-        return pd.DataFrame()
+        return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Helpers
+# Violation detection (mirrors run_eval.py scorers; independent of Naik src)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _pct(v: float | None) -> str:
-    """0–1 float → '98.0%' string."""
-    return f"{v * 100:.1f}%" if v is not None and pd.notna(v) else "—"
+def detect_violations(row: pd.Series) -> list[dict]:
+    """Return a list of {type, severity, detail} dicts for one persona row."""
+    violations = []
+    outputs: dict   = row.get("agent_outputs") or {}
+    wealth:   dict  = outputs.get("wealth") or {}
+    insurance: dict = outputs.get("insurance") or {}
+    picks:     list = wealth.get("picks") or []
+
+    # (1) Halal compliance — non-sharia fund to halal persona
+    if row.get("halal_investing"):
+        non_halal = [p.get("fund_name", "?") for p in picks if not p.get("is_sharia", False)]
+        if non_halal:
+            violations.append({
+                "type":     "halal",
+                "severity": "critical",
+                "detail":   f"Non-halal fund(s) to halal persona: {', '.join(non_halal)}",
+            })
+
+    # (2) Trigger kecamatan mismatch
+    if insurance:
+        trigger     = insurance.get("trigger") or {}
+        trigger_kec = trigger.get("kecamatan", "")
+        persona_kec = str(row.get("kecamatan") or "")
+        if trigger_kec and persona_kec and trigger_kec != persona_kec:
+            violations.append({
+                "type":     "kecamatan",
+                "severity": "critical",
+                "detail":   f"Trigger kecamatan '{trigger_kec}' ≠ persona kecamatan '{persona_kec}'",
+            })
+
+    # (3) Suitability — risk profile used > stated tolerance
+    if row.get("suitability") == 0.0:
+        profile_used = wealth.get("risk_profile_used", "?")
+        violations.append({
+            "type":     "suitability",
+            "severity": "critical",
+            "detail":   f"Risk profile '{profile_used}' exceeds tolerance '{row.get('risk_tolerance', '?')}'",
+        })
+
+    # (4) Actuarial — payout ≤ premium
+    if insurance:
+        payout  = insurance.get("payout_per_event_idr") or 0
+        premium = insurance.get("premium_idr") or 0
+        if premium > 0 and payout <= premium:
+            violations.append({
+                "type":     "actuarial",
+                "severity": "warning",
+                "detail":   f"Payout Rp {payout:,} ≤ premium Rp {premium:,} — product pays less than it costs",
+            })
+
+    # (5) High-risk area with insensitive threshold
+    if insurance and (row.get("flood_risk_score") or 0) >= 0.65:
+        trigger   = insurance.get("trigger") or {}
+        threshold = float(trigger.get("threshold") or 0)
+        if threshold > 200:
+            violations.append({
+                "type":     "threshold",
+                "severity": "warning",
+                "detail":   f"High flood-risk district but trigger threshold = {threshold} mm (> 200 mm) — fires too rarely",
+            })
+
+    return violations
 
 
-def _colour(v: float | None, *, invert: bool = False) -> str:
-    """Return a hex colour scaled from red → green (or inverted)."""
-    if v is None or pd.isna(v):
-        return "#666"
-    good = v >= 0.90
-    warn = v >= 0.70
-    if invert:
-        good, warn = not good, not warn
-    if good:
-        return "#00e676"
-    if warn:
-        return "#ffc107"
-    return "#f44336"
+# ─────────────────────────────────────────────────────────────────────────────
+# Styling
+# ─────────────────────────────────────────────────────────────────────────────
 
-
-def _metric_card(value: str, label: str, colour: str, sub: str = "") -> str:
-    return (
-        f'<div class="metric-card">'
-        f'<div class="metric-value" style="color:{colour}">{value}</div>'
-        f'<div class="metric-label">{label}</div>'
-        + (f'<div class="metric-sub">{sub}</div>' if sub else "")
-        + "</div>"
-    )
-
-
-def _score_cell_colour(v) -> str:
+def _score_colour(v) -> str:
     if v is None or (isinstance(v, float) and pd.isna(v)):
-        return "color:#555"
+        return "color: #888"
     try:
-        f = float(v)
+        fv = float(v)
     except (TypeError, ValueError):
-        return "color:#555"
-    if f >= 0.90:
-        return "color:#00e676;font-weight:700"
-    if f >= 0.70:
-        return "color:#ffc107;font-weight:600"
-    return "color:#f44336;font-weight:700"
+        return "color: #888"
+    if fv >= _SCORE_GOOD:
+        return "color: #2ecc71; font-weight: 600"
+    if fv >= _SCORE_WARN:
+        return "color: #f39c12; font-weight: 600"
+    return "color: #e74c3c; font-weight: 700"
+
+
+def _style_scores(df: pd.DataFrame):
+    score_cols = [c for c in _METRICS + ["overall", "suitability", "do_no_harm",
+                                          "trigger_prec", "fund_rank_correctness",
+                                          "claim_trigger_precision"]
+                  if c in df.columns]
+    styler = df.style
+    for col in score_cols:
+        styler = styler.applymap(_score_colour, subset=[col])
+    fmt = {col: (lambda v: f"{v:.2f}" if pd.notna(v) else "—") for col in score_cols}
+    return styler.format(fmt, na_rep="—")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Sidebar — minimal, collapsed by default
+# Flag report generator
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _sidebar(df: pd.DataFrame) -> None:
+def generate_flag_report(df: pd.DataFrame, flagged: list[dict]) -> str:
+    now         = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    n_personas  = len(df)
+    n_flagged   = len(flagged)
+    n_halal     = sum(1 for f in flagged if any(v["type"] == "halal"       for v in f["violations"]))
+    n_kec       = sum(1 for f in flagged if any(v["type"] == "kecamatan"   for v in f["violations"]))
+    n_suit      = sum(1 for f in flagged if any(v["type"] == "suitability" for v in f["violations"]))
+    n_act       = sum(1 for f in flagged if any(v["type"] == "actuarial"   for v in f["violations"]))
+
+    L = [
+        "# Naik Eval Flag Report",
+        f"**Generated:** {now}  ",
+        f"**Personas evaluated:** {n_personas}  ",
+        f"**Personas with violations:** {n_flagged} / {n_personas}",
+        "",
+        "## Summary",
+        "",
+        "| Violation type | Count |",
+        "|---|---|",
+        f"| 🚨 Non-halal fund to halal persona | {n_halal} |",
+        f"| 🚨 Trigger kecamatan mismatch | {n_kec} |",
+        f"| 🚨 Suitability (unsafe risk upgrade) | {n_suit} |",
+        f"| ⚠️ Actuarial (payout ≤ premium) | {n_act} |",
+        "",
+    ]
+
+    # Halal violations
+    halal_cases = [f for f in flagged if any(v["type"] == "halal" for v in f["violations"])]
+    if halal_cases:
+        L += [
+            "## 🚨 Halal Compliance Violations",
+            "",
+            "The wealth agent recommended non-sharia fund(s) to a persona with",
+            "`halal_investing = True`. This is a do-no-harm violation (OJK suitability).",
+            "",
+            "**Root cause:** `naik_agents/wealth.py` — verify `sharia_only=True` is",
+            "passed to `get_fund_list()` when `resolve_sharia_only(persona)` returns True.",
+            "",
+        ]
+        for f in halal_cases:
+            detail = next(v["detail"] for v in f["violations"] if v["type"] == "halal")
+            L += [
+                f"### `{f['user_id']}` — {f['kecamatan']}, {f['city']}",
+                f"- Risk tolerance: {f['risk_tolerance']}",
+                f"- Monthly income: Rp {f.get('monthly_income_idr', 0):,}",
+                f"- **{detail}**",
+                "- Fund picks:",
+            ]
+            for p in f.get("picks", []):
+                badge = "✓ halal" if p.get("is_sharia") else "✗ NOT HALAL ← FIX THIS"
+                L.append(f"  - `{p.get('fund_name', '?')}` — {badge} (score {p.get('match_score', '?')})")
+            L.append("")
+
+    # Kecamatan mismatches
+    kec_cases = [f for f in flagged if any(v["type"] == "kecamatan" for v in f["violations"])]
+    if kec_cases:
+        L += [
+            "## 🚨 Trigger Kecamatan Mismatches",
+            "",
+            "The insurance trigger references the wrong kecamatan. The parametric product",
+            "will fire based on weather at the wrong location, not the persona's home district.",
+            "",
+            "**Root cause:** `naik_agents/insurance.py` — verify `persona.kecamatan` is",
+            "passed through to `price_income_shock_cover()` and into `InsuranceTrigger.kecamatan`.",
+            "",
+        ]
+        for f in kec_cases:
+            detail = next(v["detail"] for v in f["violations"] if v["type"] == "kecamatan")
+            L += [
+                f"### `{f['user_id']}` — expected kecamatan `{f['kecamatan']}`",
+                f"- Flood risk score: {f.get('flood_risk_score', 0):.2f}",
+                f"- **{detail}**",
+                "",
+            ]
+
+    # Suitability violations
+    suit_cases = [f for f in flagged if any(v["type"] == "suitability" for v in f["violations"])]
+    if suit_cases:
+        L += [
+            "## 🚨 Suitability Violations",
+            "",
+            "The pipeline recommended a more aggressive risk profile than the persona stated.",
+            "This is an OJK suitability failure — the agent must never upgrade risk profile.",
+            "",
+            "**Root cause:** `naik_agents/wealth.py` — `_resolve_effective_risk_profile()`",
+            "must return a profile ≤ `persona.risk_tolerance`.",
+            "",
+        ]
+        for f in suit_cases:
+            detail = next(v["detail"] for v in f["violations"] if v["type"] == "suitability")
+            L += [
+                f"### `{f['user_id']}` — stated tolerance `{f['risk_tolerance']}`",
+                f"- **{detail}**",
+                "",
+            ]
+
+    # Actuarial warnings
+    act_cases = [f for f in flagged if any(v["type"] == "actuarial" for v in f["violations"])]
+    if act_cases:
+        L += [
+            "## ⚠️ Actuarial Soundness Warnings",
+            "",
+            "Premium exceeds or equals the single-event payout for these personas.",
+            "Run `eval/pricing_sanity_check.py` and check `_PREMIUM_CALIBRATION` in `naik_agents/tools.py`.",
+            "",
+        ]
+        for f in act_cases:
+            detail = next(v["detail"] for v in f["violations"] if v["type"] == "actuarial")
+            L += [
+                f"### `{f['user_id']}` — {f['kecamatan']} (flood risk {f.get('flood_risk_score', 0):.2f})",
+                f"- **{detail}**",
+                "",
+            ]
+
+    if not flagged:
+        L += [
+            "## ✅ No Violations",
+            "",
+            "All 50 personas passed the four eval metrics. No action required.",
+            "",
+        ]
+
+    L += ["---", f"*Naik eval dashboard · {now}*"]
+    return "\n".join(L)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sidebar
+# ─────────────────────────────────────────────────────────────────────────────
+
+def render_sidebar(df: pd.DataFrame | None) -> None:
     with st.sidebar:
-        st.caption("**Naik · Eval Dashboard**")
+        st.title("Naik · Eval")
         st.divider()
 
         engine = _get_engine()
         if not _DB_URL:
-            st.error("DATABASE_URL not set")
+            st.error("DATABASE_URL not configured")
+            st.caption("Set it in Streamlit secrets or the environment.")
         elif engine is None:
             st.error("DB unreachable")
         else:
             st.success("DB connected ✓")
 
         if st.button("Ping /health", use_container_width=True):
+            url = f"{_API_BASE.rstrip('/')}/health"
             try:
-                r = requests.get(f"{_API_BASE.rstrip('/')}/health", timeout=8)
+                r = requests.get(url, timeout=8)
+                r.raise_for_status()
                 p = r.json()
-                st.success(f"API ok — v{p.get('version','?')}")
+                if p.get("status") == "ok":
+                    st.success(f"API ok — v{p.get('version', '?')}")
+                else:
+                    st.warning(f"API status: {p.get('status')}")
             except Exception as exc:
                 st.error(f"API unreachable: {exc}")
+
+        st.divider()
+        if df is not None and not df.empty:
+            st.caption(f"**Personas:** {len(df)}")
+            last = df.get("evaluated_at", pd.Series(dtype=object)).max()
+            st.caption(f"**Last eval:** {last}")
+            if "api_success" in df.columns:
+                ok_pct = df["api_success"].mean() * 100
+                st.caption(f"**API success:** {ok_pct:.0f}%")
 
         if st.button("↺  Refresh", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
-        if not df.empty:
-            st.divider()
-            st.caption(f"**{len(df)}** personas")
-            last = df.get("evaluated_at", pd.Series(dtype=object)).max()
-            st.caption(f"Last eval: {last}")
-
         st.divider()
         st.caption(
-            "To populate:\n\n"
+            "**To populate:**\n\n"
             "```\npython eval/run_eval.py \\\n"
             f"  --api-base {_API_BASE}\n```"
         )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Persona drill-down
+# Tab 1 — Overview
 # ─────────────────────────────────────────────────────────────────────────────
 
-_WELLNESS_DIMS = [
-    "diversification", "liquidity", "growth", "risk_management",
-    "tax_efficiency", "emergency_fund", "behavioural_resilience",
-]
-_DIM_LABELS = {
-    "diversification":      "Diversif.",
-    "liquidity":            "Liquidity",
-    "growth":               "Growth",
-    "risk_management":      "Protection",
-    "tax_efficiency":       "Tax eff.",
-    "emergency_fund":       "Emerg. fund",
-    "behavioural_resilience": "Discipline",
-}
-
-
-def _wellness_radar(wellness: dict) -> go.Figure:
-    values = [wellness.get(d, 0) for d in _WELLNESS_DIMS]
-    labels = [_DIM_LABELS[d] for d in _WELLNESS_DIMS]
-    fig = go.Figure(go.Scatterpolar(
-        r=values + [values[0]],
-        theta=labels + [labels[0]],
-        fill="toself",
-        line_color="#00e676",
-        fillcolor="rgba(0,230,118,0.12)",
-        hovertemplate="%{theta}: %{r:.1f}<extra></extra>",
-    ))
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(
-                visible=True, range=[0, 100],
-                tickfont=dict(size=9, color="#666"),
-                gridcolor="#333",
-            ),
-            angularaxis=dict(tickfont=dict(size=10, color="#aaa")),
-            bgcolor="rgba(0,0,0,0)",
-        ),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(t=20, b=20, l=30, r=30),
-        height=280,
-        font=dict(color="#ccc"),
-        showlegend=False,
-    )
-    return fig
-
-
-def _render_drill_down(row: pd.Series) -> None:
-    outputs: dict   = row.get("agent_outputs") or {}
-    wellness: dict  = outputs.get("wellness")  or {}
-    wealth: dict    = outputs.get("wealth")    or {}
-    insurance: dict = outputs.get("insurance") or {}
-    compliance: dict = outputs.get("compliance") or {}
-    picks: list     = wealth.get("picks")      or []
-
-    halal_tag = " · 🌙 Halal"   if row.get("halal_investing") else ""
-    gig_tag   = " · 🛵 Gig"     if row.get("is_gig_worker")   else ""
-
-    st.markdown('<div class="drill-container">', unsafe_allow_html=True)
-
-    # ── Identity ─────────────────────────────────────────────────────────── #
-    st.markdown(
-        f"**{row.get('user_id', '?')}**  ·  "
-        f"{row.get('kecamatan', '?')}, {row.get('city', '?')}  ·  "
-        f"Age {row.get('age', '?')}  ·  "
-        f"Rp {int(row.get('monthly_income_idr') or 0):,}/month  ·  "
-        f"{str(row.get('risk_tolerance', '?')).title()}"
-        f"{halal_tag}{gig_tag}  ·  "
-        f"Flood risk {float(row.get('flood_risk_score') or 0):.2f}"
-    )
-
-    # ── Score badges ─────────────────────────────────────────────────────── #
-    sc = st.columns(5)
-    for col, (label, key) in zip(sc, [
-        ("Suitability",        "suitability"),
-        ("Fund-rank",          "fund_rank_correctness"),
-        ("Trigger precision",  "claim_trigger_precision"),
-        ("Do-no-harm",         "do_no_harm"),
-        ("Overall",            "overall"),
-    ]):
-        v = row.get(key)
-        col.metric(label, _pct(v))
-
-    st.divider()
-
-    # ── Two-column layout ─────────────────────────────────────────────────── #
-    col_l, col_r = st.columns([1, 1], gap="large")
-
-    with col_l:
-        # Wellness radar
-        st.markdown('<p class="section-header">Wellness vector</p>',
-                    unsafe_allow_html=True)
-        if any(wellness.get(d) is not None for d in _WELLNESS_DIMS):
-            st.plotly_chart(_wellness_radar(wellness), use_container_width=True)
-        priority = wellness.get("priority_gap", "?")
-        overall  = wellness.get("overall_score", "?")
-        st.caption(
-            f"Priority gap: **{priority}**  ·  "
-            f"Wellness score: **{overall}** / 100"
-        )
-        if wellness.get("rationale"):
-            st.caption(f"*{wellness['rationale']}*")
-
-        # Compliance
-        st.markdown('<p class="section-header" style="margin-top:1rem">Compliance</p>',
-                    unsafe_allow_html=True)
-        if compliance:
-            status = compliance.get("status", "?")
-            colour = "#00e676" if "approved" in status else "#f44336"
-            st.markdown(
-                f"<span style='color:{colour};font-weight:700'>"
-                f"{status.replace('_',' ').title()}</span>  ·  "
-                f"Human confirmation: `{compliance.get('requires_human_confirmation','?')}`",
-                unsafe_allow_html=True,
-            )
-
-    with col_r:
-        # Fund picks
-        st.markdown('<p class="section-header">Fund picks</p>',
-                    unsafe_allow_html=True)
-        if picks:
-            st.caption(
-                f"Profile used: **{wealth.get('risk_profile_used', '?')}**  ·  "
-                f"Monthly contribution: Rp {int(wealth.get('recommended_monthly_contribution_idr') or 0):,}"
-            )
-            for i, p in enumerate(picks, 1):
-                sharia_icon = "🌙" if p.get("is_sharia") else "❌"
-                st.markdown(
-                    f"**{i}.** {p.get('fund_name','?')} {sharia_icon}  \n"
-                    f"<span style='color:#aaa;font-size:0.85rem'>"
-                    f"Score {p.get('match_score','?')}  ·  "
-                    f"Risk {p.get('risk_level','?')}  ·  "
-                    f"ER {p.get('expense_ratio_pct','?')}%</span>",
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.caption("No wealth recommendation.")
-
-        # Insurance
-        st.markdown('<p class="section-header" style="margin-top:1rem">Income shield</p>',
-                    unsafe_allow_html=True)
-        if insurance:
-            trigger = insurance.get("trigger") or {}
-            payout  = insurance.get("payout_per_event_idr") or 0
-            premium = insurance.get("premium_idr") or 0
-            ratio   = round(payout / premium, 1) if premium > 0 else "—"
-            kec_ok  = trigger.get("kecamatan") == row.get("kecamatan")
-            kec_icon = "✓" if kec_ok else "❌"
-            st.markdown(
-                f"Trigger: **{trigger.get('metric','?')} ≥ {trigger.get('threshold','?')} "
-                f"{trigger.get('unit','')}** at {trigger.get('kecamatan','?')} {kec_icon}  \n"
-                f"Payout: **Rp {int(payout):,}** "
-                f"({insurance.get('payout_multiple','?')}× daily)  \n"
-                f"Premium: **Rp {int(premium):,}** / {insurance.get('premium_frequency','?')}  \n"
-                f"Ratio: **{ratio}×** (payout ÷ premium)"
-            )
-            if not kec_ok:
-                st.error(
-                    f"Kecamatan mismatch: trigger '{trigger.get('kecamatan')}' "
-                    f"≠ persona '{row.get('kecamatan')}'"
-                )
-        else:
-            st.caption("No insurance quote.")
-
-    # ── Narrative ─────────────────────────────────────────────────────────── #
-    narrative = outputs.get("narrative", "")
-    if narrative:
-        st.divider()
-        st.markdown('<p class="section-header">Narrative shown to user</p>',
-                    unsafe_allow_html=True)
-        st.markdown(
-            f"<p style='font-size:0.95rem;line-height:1.65;color:#ddd'>{narrative}</p>",
-            unsafe_allow_html=True,
-        )
-        st.caption(f"Next step: **{outputs.get('next_step', '?')}**")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Main page
-# ─────────────────────────────────────────────────────────────────────────────
-
-def main() -> None:
-    df = load_data()
-    _sidebar(df)
-
-    # ── Header ────────────────────────────────────────────────────────────── #
-    st.markdown(
-        "<h2 style='margin:0;font-size:1.5rem;font-weight:700;"
-        "letter-spacing:-0.5px'>Naik · Evaluation Results</h2>",
-        unsafe_allow_html=True,
-    )
+def render_overview(df: pd.DataFrame) -> None:
+    st.header("50-Persona Evaluation Overview")
 
     if df.empty:
         st.info(
-            "No eval data found.  \n\n"
+            "No eval runs in the database yet.  \n\n"
             f"Run `python eval/run_eval.py --api-base {_API_BASE}` to populate.",
             icon="📭",
         )
         return
 
-    scored = df[df.get("api_success", pd.Series([True] * len(df))).fillna(False)]
+    scored = df[df.get("api_success", pd.Series([True] * len(df))).fillna(False) == True]
 
-    # ── 4 Metric cards ────────────────────────────────────────────────────── #
-    # Compute aggregates
-    n_total      = len(df)
-    n_scored     = len(scored)
-    suit_avg     = scored["suitability"].mean()             if not scored.empty else None
-    rank_avg     = scored["fund_rank_correctness"].mean()   if not scored.empty else None
-    trig_avg     = scored["claim_trigger_precision"].mean() if not scored.empty else None
-    dnhm_fail    = int((scored["do_no_harm"] == 0.0).sum()) if not scored.empty else 0
-    last_run     = df["evaluated_at"].max()
-
-    col_a, col_b, col_c, col_d = st.columns(4, gap="medium")
-    cards = [
-        (col_a, _pct(suit_avg),  _colour(suit_avg),          "SUITABILITY",       f"{n_scored} personas"),
-        (col_b, _pct(rank_avg),  _colour(rank_avg),          "FUND-RANK ACCURACY", ""),
-        (col_c, _pct(trig_avg),  _colour(trig_avg),          "TRIGGER PRECISION",  ""),
-        (col_d,
-         str(dnhm_fail),
-         "#00e676" if dnhm_fail == 0 else "#f44336",
-         "DO-NO-HARM VIOLATIONS",
-         "0 = perfect" if dnhm_fail == 0 else f"of {n_scored} personas"),
-    ]
-    for col, value, colour, label, sub in cards:
-        with col:
-            st.markdown(
-                _metric_card(value, label, colour, sub),
-                unsafe_allow_html=True,
-            )
-
-    # Run metadata
-    last_str = (
-        last_run.strftime("%Y-%m-%d %H:%M UTC") if hasattr(last_run, "strftime")
-        else str(last_run)
-    )
-    st.markdown(
-        f"<p style='color:rgba(255,255,255,0.3);font-size:0.75rem;"
-        f"margin-top:0.75rem'>Last run: {last_str}"
-        f" &nbsp;·&nbsp; {n_total} personas &nbsp;·&nbsp; "
-        f"{n_scored} API calls successful</p>",
-        unsafe_allow_html=True,
-    )
+    # KPI row
+    cols = st.columns(5)
+    for col, metric in zip(cols[:4], _METRICS):
+        val = scored[metric].mean() if metric in scored.columns and not scored.empty else None
+        col.metric(
+            _METRIC_LABELS[metric],
+            f"{val:.3f}" if val is not None else "—",
+            delta=f"{val - 1.0:+.3f}" if val is not None else None,
+            delta_color="normal",
+        )
+    ovrl = scored["overall"].mean() if "overall" in scored.columns and not scored.empty else None
+    cols[4].metric("Overall", f"{ovrl:.3f}" if ovrl is not None else "—")
 
     st.divider()
 
-    # ── Persona table ─────────────────────────────────────────────────────── #
-    st.markdown(
-        '<p class="section-header">All personas — click a row to drill down</p>',
-        unsafe_allow_html=True,
-    )
-
-    # Build display table: compact columns only
-    disp = pd.DataFrame({
-        "persona":   df["user_id"],
-        "kecamatan": df["kecamatan"],
-        "risk":      df["risk_tolerance"].str[:4],       # "cons" / "mode" / "aggr"
-        "🌙":        df["halal_investing"].apply(lambda v: "🌙" if v else ""),
-        "suit":      df["suitability"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—"),
-        "rank":      df["fund_rank_correctness"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—"),
-        "trigger":   df["claim_trigger_precision"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—"),
-        "d-n-h":     df["do_no_harm"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—"),
-        "overall":   df["overall"].apply(lambda v: f"{v:.2f}" if pd.notna(v) else "—"),
-        "ms":        df["response_ms"].apply(lambda v: f"{int(v)}" if pd.notna(v) else "—"),
-    })
-
-    # Colour overall column
-    def _style_row(row):
-        styles = [""] * len(row)
-        try:
-            v = float(row["overall"])
-        except (ValueError, TypeError):
-            return styles
-        c = "color:#00e676" if v >= 0.90 else "color:#ffc107" if v >= 0.70 else "color:#f44336"
-        styles[disp.columns.get_loc("overall")] = c
-        return styles
-
-    event = st.dataframe(
-        disp.style.apply(_style_row, axis=1),
-        use_container_width=True,
-        height=min(60 + 35 * len(disp), 480),
-        selection_mode="single-row",
-        on_select="rerun",
-        key="persona_table",
-    )
-
-    # ── Drill-down ────────────────────────────────────────────────────────── #
-    selected = event.selection.rows  # type: ignore[attr-defined]
-    if selected:
-        row = df.iloc[selected[0]]
-        st.markdown(
-            f"<p class='section-header' style='margin-top:0.5rem'>"
-            f"Drill-down — {row.get('user_id', '?')}</p>",
-            unsafe_allow_html=True,
+    cl, cr = st.columns(2)
+    with cl:
+        st.subheader("Mean score per metric")
+        means = {_METRIC_LABELS[m]: float(scored[m].mean()) for m in _METRICS if m in scored.columns}
+        fig = go.Figure(go.Bar(
+            x=list(means.keys()),
+            y=list(means.values()),
+            marker_color=[
+                "#2ecc71" if v >= _SCORE_GOOD else "#f39c12" if v >= _SCORE_WARN else "#e74c3c"
+                for v in means.values()
+            ],
+            text=[f"{v:.3f}" for v in means.values()],
+            textposition="outside",
+        ))
+        fig.update_layout(
+            yaxis=dict(range=[0, 1.12], title="Score"),
+            height=300,
+            margin=dict(t=10, b=10, l=10, r=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#ccc"),
         )
-        _render_drill_down(row)
+        fig.add_hline(y=1.0, line_dash="dot", line_color="#555")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with cr:
+        st.subheader("Overall score distribution")
+        fig2 = px.histogram(
+            scored, x="overall", nbins=10, range_x=[0, 1.05],
+            color_discrete_sequence=["#1abc9c"],
+            labels={"overall": "Overall score"},
+        )
+        fig2.add_vline(
+            x=float(scored["overall"].mean()),
+            line_dash="dash", line_color="#e74c3c",
+            annotation_text=f"mean {scored['overall'].mean():.3f}",
+        )
+        fig2.update_layout(
+            height=300,
+            margin=dict(t=10, b=10, l=10, r=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#ccc"),
+            yaxis_title="Personas",
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+    st.divider()
+    st.subheader("All personas — scores")
+
+    display_cols = ["user_id", "kecamatan", "risk_tolerance", "halal_investing",
+                    "suitability", "fund_rank_correctness", "claim_trigger_precision",
+                    "do_no_harm", "overall", "response_ms"]
+    table = df[[c for c in display_cols if c in df.columns]].copy()
+    table.columns = [_METRIC_LABELS.get(c, c.replace("_", " ").title()) for c in table.columns]
+    st.dataframe(_style_scores(table), use_container_width=True,
+                 height=min(60 + 35 * len(table), 580))
+
+    # Flag indicator
+    score_zero = (
+        (df.get("suitability",             pd.Series(dtype=float)) == 0) |
+        (df.get("claim_trigger_precision",  pd.Series(dtype=float)) == 0) |
+        (df.get("do_no_harm",               pd.Series(dtype=float)) == 0)
+    )
+    if score_zero.any():
+        st.warning(
+            f"⚠ {int(score_zero.sum())} persona(s) have a score of 0 on at least one metric. "
+            "See the **🚩 Flags** tab.",
+            icon="🚩",
+        )
+
+    failed = df[df.get("api_success", pd.Series([True] * len(df))).fillna(True) == False]
+    if not failed.empty:
+        with st.expander(f"⚠ {len(failed)} API call(s) failed"):
+            st.dataframe(failed[["user_id", "error_msg"]].fillna("—"), use_container_width=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tab 2 — Persona detail
+# ─────────────────────────────────────────────────────────────────────────────
+
+def render_persona_detail(df: pd.DataFrame) -> None:
+    st.header("Persona Drill-down")
+
+    if df.empty:
+        st.info("No data yet. Run `run_eval.py` to populate.", icon="📭")
+        return
+
+    selected = st.selectbox("Select persona", sorted(df["user_id"].tolist()))
+    row = df[df["user_id"] == selected].iloc[0]
+    outputs: dict   = row.get("agent_outputs") or {}
+    wealth:   dict  = outputs.get("wealth")    or {}
+    insurance: dict = outputs.get("insurance") or {}
+    wellness:  dict = outputs.get("wellness")  or {}
+    compliance: dict = outputs.get("compliance") or {}
+
+    # Header
+    halal_tag = " 🌙 Halal"  if row.get("halal_investing") else ""
+    gig_tag   = " 🛵 Gig"    if row.get("is_gig_worker")    else ""
+    st.markdown(
+        f"### {row['user_id']}{halal_tag}{gig_tag}  \n"
+        f"**{row.get('kecamatan', '?')}, {row.get('city', '?')}**  ·  "
+        f"Age {row.get('age', '?')}  ·  "
+        f"Rp {int(row.get('monthly_income_idr') or 0):,}/month  ·  "
+        f"{str(row.get('risk_tolerance', '?')).title()}"
+    )
+    st.caption(
+        f"Flood risk: **{float(row.get('flood_risk_score') or 0):.2f}**  ·  "
+        f"Insurance: {row.get('current_insurance', '?')}  ·  "
+        f"Evaluated: {row.get('evaluated_at', '?')}  ·  "
+        f"Response: {row.get('response_ms', '?')} ms"
+    )
+
+    # Score badges
+    st.divider()
+    score_cols = st.columns(5)
+    for col, m in zip(score_cols, _METRICS + ["overall"]):
+        val = row.get(m)
+        col.metric(_METRIC_LABELS.get(m, m), f"{val:.2f}" if pd.notna(val) else "—")
+
+    # Violations
+    violations = detect_violations(row)
+    if violations:
+        for v in violations:
+            icon = "🚨" if v["severity"] == "critical" else "⚠️"
+            st.error(f"{icon} **{v['type'].upper()}**: {v['detail']}")
     else:
-        st.caption("← Select any row to see the full agent output.")
+        st.success("No violations for this persona.", icon="✅")
+
+    st.divider()
+    col_l, col_r = st.columns(2)
+
+    with col_l:
+        with st.expander("🧠 Wellness", expanded=True):
+            dim_keys = ["diversification", "liquidity", "growth", "risk_management",
+                        "tax_efficiency", "emergency_fund", "behavioural_resilience"]
+            dim_vals = {k: wellness.get(k) for k in dim_keys if wellness.get(k) is not None}
+            if dim_vals:
+                fig = go.Figure(go.Scatterpolar(
+                    r=list(dim_vals.values()),
+                    theta=[k.replace("_", " ").title() for k in dim_vals],
+                    fill="toself",
+                    line_color="#1abc9c",
+                    fillcolor="rgba(26,188,156,0.15)",
+                ))
+                fig.update_layout(
+                    polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                    height=280,
+                    margin=dict(t=20, b=20, l=20, r=20),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#ccc"),
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            st.caption(
+                f"Priority gap: **{wellness.get('priority_gap', '?')}**  ·  "
+                f"Overall: **{wellness.get('overall_score', '?')}**"
+            )
+            if wellness.get("rationale"):
+                st.caption(f"*{wellness['rationale']}*")
+
+        with st.expander("⚖️ Compliance"):
+            if compliance:
+                status = compliance.get("status", "?")
+                st.markdown(f"**Status:** `{status}`")
+                st.markdown(f"General guidance: `{compliance.get('is_general_guidance', '?')}`")
+                st.markdown(f"Human confirmation: `{compliance.get('requires_human_confirmation', '?')}`")
+                for d in (compliance.get("disclaimers") or [])[:2]:
+                    st.caption(f"· {d}")
+            else:
+                st.caption("No compliance output.")
+
+    with col_r:
+        with st.expander("💰 Fund Picks", expanded=True):
+            picks = wealth.get("picks") or []
+            if picks:
+                st.caption(
+                    f"Profile used: **{wealth.get('risk_profile_used', '?')}**  ·  "
+                    f"Monthly contribution: Rp {int(wealth.get('recommended_monthly_contribution_idr') or 0):,}"
+                )
+                for i, p in enumerate(picks, 1):
+                    sharia_icon = "🌙" if p.get("is_sharia") else "❌"
+                    st.markdown(
+                        f"**{i}. {p.get('fund_name', '?')}** {sharia_icon}  \n"
+                        f"Score {p.get('match_score', '?')}  ·  "
+                        f"Risk {p.get('risk_level', '?')}  ·  "
+                        f"ER {p.get('expense_ratio_pct', '?')}%  \n"
+                        f"*{p.get('rationale', '')}*"
+                    )
+            else:
+                st.caption("No wealth recommendation.")
+
+        with st.expander("🛡️ Insurance Quote"):
+            if insurance:
+                trigger  = insurance.get("trigger") or {}
+                payout   = insurance.get("payout_per_event_idr") or 0
+                premium  = insurance.get("premium_idr") or 0
+                ratio    = payout / premium if premium > 0 else 0
+                kec_ok   = trigger.get("kecamatan") == row.get("kecamatan")
+                kec_icon = "✓" if kec_ok else "❌"
+                st.markdown(
+                    f"**Trigger:** {trigger.get('metric', '?')} ≥ {trigger.get('threshold', '?')} "
+                    f"{trigger.get('unit', '')}  \n"
+                    f"**Kecamatan:** {trigger.get('kecamatan', '?')} {kec_icon}  \n"
+                    f"**Payout:** Rp {int(payout):,} ({insurance.get('payout_multiple', '?')}× daily)  \n"
+                    f"**Premium:** Rp {int(premium):,}/{insurance.get('premium_frequency', '?')}  \n"
+                    f"**Ratio:** {ratio:.1f}× (payout ÷ premium)"
+                )
+                if not kec_ok:
+                    st.error(
+                        f"Expected kecamatan '{row.get('kecamatan')}', "
+                        f"got '{trigger.get('kecamatan')}'"
+                    )
+            else:
+                st.caption("No insurance quote.")
+
+    if outputs.get("narrative"):
+        with st.expander("📝 Narrative"):
+            st.write(outputs["narrative"])
+            st.caption(f"Next step: **{outputs.get('next_step', '?')}**")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tab 3 — Flags & Report (Block 2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def render_flags(df: pd.DataFrame) -> None:
+    st.header("🚩 Flags & Report")
+    st.caption("Surfaces violations: halal compliance · kecamatan mismatch · suitability · actuarial soundness.")
+
+    if df.empty:
+        st.info("No eval data yet. Run `run_eval.py` first.", icon="📭")
+        return
+
+    # Build flagged list
+    flagged: list[dict] = []
+    for _, row in df.iterrows():
+        violations = detect_violations(row)
+        if not violations:
+            continue
+        outputs: dict = row.get("agent_outputs") or {}
+        wealth:  dict = outputs.get("wealth") or {}
+        flagged.append({
+            "user_id":            row.get("user_id", "?"),
+            "kecamatan":          row.get("kecamatan", "?"),
+            "city":               row.get("city", "?"),
+            "risk_tolerance":     row.get("risk_tolerance", "?"),
+            "halal_investing":    row.get("halal_investing", False),
+            "flood_risk_score":   float(row.get("flood_risk_score") or 0),
+            "monthly_income_idr": int(row.get("monthly_income_idr") or 0),
+            "violations":         violations,
+            "picks":              wealth.get("picks") or [],
+            "suitability":        row.get("suitability"),
+            "do_no_harm":         row.get("do_no_harm"),
+            "claim_trigger_precision": row.get("claim_trigger_precision"),
+        })
+
+    # Summary metrics
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Flagged personas", len(flagged), f"of {len(df)} total")
+    c2.metric("🚨 Halal",
+              sum(1 for f in flagged if any(v["type"] == "halal" for v in f["violations"])))
+    c3.metric("🚨 Kecamatan",
+              sum(1 for f in flagged if any(v["type"] == "kecamatan" for v in f["violations"])))
+    c4.metric("🚨 Suitability / actuarial",
+              sum(1 for f in flagged
+                  if any(v["type"] in ("suitability", "actuarial") for v in f["violations"])))
+
+    if not flagged:
+        st.success("✅ No violations across all personas.", icon="✅")
+    else:
+        st.divider()
+        st.subheader("Flagged personas")
+        rows_tbl = [{
+            "user_id":       f["user_id"],
+            "kecamatan":     f["kecamatan"],
+            "halal":         "🌙" if f["halal_investing"] else "",
+            "tolerance":     f["risk_tolerance"],
+            "suitability":   f["suitability"],
+            "do_no_harm":    f["do_no_harm"],
+            "trigger_prec":  f["claim_trigger_precision"],
+            "violations":    " | ".join(v["detail"] for v in f["violations"]),
+        } for f in flagged]
+        st.dataframe(
+            _style_scores(pd.DataFrame(rows_tbl)),
+            use_container_width=True,
+            height=min(60 + 35 * len(rows_tbl), 380),
+        )
+
+        st.divider()
+        st.subheader("Violation details")
+        for f in flagged:
+            with st.expander(
+                f"**{f['user_id']}** — {f['kecamatan']}, {f['city']} "
+                f"{'🌙' if f['halal_investing'] else ''}"
+            ):
+                for v in f["violations"]:
+                    icon = "🚨" if v["severity"] == "critical" else "⚠️"
+                    st.error(f"{icon} **{v['type'].upper()}**: {v['detail']}")
+                st.caption(
+                    f"suit={f['suitability']}  dnhm={f['do_no_harm']}  "
+                    f"trig={f['claim_trigger_precision']}"
+                )
+                if f["picks"] and f["halal_investing"]:
+                    for p in f["picks"]:
+                        badge = "✓ halal" if p.get("is_sharia") else "❌ NOT HALAL"
+                        st.caption(f"  · {p.get('fund_name', '?')} — {badge}")
+
+    # Download report
+    st.divider()
+    st.subheader("Download flag report")
+    report_md = generate_flag_report(df, flagged)
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        st.download_button(
+            "⬇ naik_flag_report.md",
+            data=report_md,
+            file_name="naik_flag_report.md",
+            mime="text/markdown",
+            use_container_width=True,
+            type="primary",
+        )
+    with col2:
+        st.caption(
+            f"{len(df)} personas · {len(flagged)} violation(s) · {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+        )
+    with st.expander("Preview report"):
+        st.markdown(report_md)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    df = load_eval_data()
+    if df is None:
+        df = pd.DataFrame()
+
+    render_sidebar(df)
+
+    tab1, tab2, tab3 = st.tabs(["📊 Overview", "🔍 Persona Detail", "🚩 Flags & Report"])
+    with tab1:
+        render_overview(df)
+    with tab2:
+        render_persona_detail(df)
+    with tab3:
+        render_flags(df)
 
 
 main()
