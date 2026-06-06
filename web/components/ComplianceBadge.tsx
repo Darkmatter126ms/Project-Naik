@@ -10,6 +10,22 @@ interface Props {
 const isApproved = (status: string) =>
   status === "approved" || status === "approved_with_conditions";
 
+// Maps the Bahasa backend disclaimer strings to locale keys.
+// The backend always returns Bahasa (regulatory record); we translate in the UI.
+const DISCLAIMER_KEY_MAP: Record<string, keyof CopyShape> = {
+  "Ini adalah panduan umum, bukan nasihat keuangan yang dipersonalisasi, sesuai ketentuan OJK.": "disclaimerGeneral",
+  "Kinerja masa lalu tidak menjamin hasil di masa depan.": "disclaimerPastPerf",
+  "Investasi reksa dana mengandung risiko; nilai investasi dapat naik atau turun.": "disclaimerInvestRisk",
+  "Konfirmasi manual diperlukan sebelum melakukan transaksi apa pun.": "disclaimerManualConfirm",
+  "Asuransi parametrik membayar berdasarkan indeks cuaca BMKG, bukan penilaian kerugian individual.": "disclaimerParametric",
+  "Beberapa pernyataan telah disesuaikan agar tidak menjanjikan hasil atau jaminan tertentu.": "disclaimerRewritten",
+  "Terdapat dana yang belum tersertifikasi syariah; perlu tinjauan sebelum ditawarkan kepada investor syariah.": "disclaimerSharia",
+};
+
+// Maps the Bahasa compliance rationale prefix to a locale key.
+const RATIONALE_KEY = "complianceRationale";
+const RATIONALE_ID_PREFIX = "Semua keluaran ditinjau";
+
 export default function ComplianceBadge({ verdict, labels }: Props) {
   const approved = isApproved(verdict.status);
   const statusColor = approved ? "var(--signal)" : "var(--err)";
@@ -18,6 +34,12 @@ export default function ComplianceBadge({ verdict, labels }: Props) {
   // Status label from locale (e.g. "Disetujui" / "Approved")
   const statusLabel =
     labels.complianceStatus[verdict.status] ?? verdict.status;
+
+  // Translate compliance rationale: if it starts with the Bahasa prefix,
+  // replace with the locale string; otherwise show as-is.
+  const rationaleText = verdict.rationale?.startsWith(RATIONALE_ID_PREFIX)
+    ? (labels[RATIONALE_KEY] as string ?? verdict.rationale)
+    : verdict.rationale;
 
   return (
     <div className="compliance-badge">
@@ -52,8 +74,8 @@ export default function ComplianceBadge({ verdict, labels }: Props) {
         </div>
       </div>
 
-      {/* Rationale */}
-      <p className="compliance-badge__rationale">{verdict.rationale}</p>
+      {/* Rationale — translated via locale map */}
+      <p className="compliance-badge__rationale">{rationaleText}</p>
 
       {/* Reviewed dimensions */}
       {verdict.reviewed.length > 0 && (
@@ -66,12 +88,16 @@ export default function ComplianceBadge({ verdict, labels }: Props) {
         </div>
       )}
 
-      {/* OJK disclaimer — always at the bottom */}
-      {verdict.disclaimers.map((d, i) => (
-        <p key={i} className="compliance-badge__disclaimer">
-          {d}
-        </p>
-      ))}
+      {/* OJK disclaimers — translated via locale map, fallback to backend string */}
+      {verdict.disclaimers.map((d, i) => {
+        const localeKey = DISCLAIMER_KEY_MAP[d.trim()];
+        const text = localeKey ? (labels[localeKey] as string ?? d) : d;
+        return (
+          <p key={i} className="compliance-badge__disclaimer">
+            {text}
+          </p>
+        );
+      })}
     </div>
   );
 }
