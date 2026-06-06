@@ -153,5 +153,7 @@
   "intakePointersFinancialItem2": "Do you have savings or an emergency fund?",
   "intakePointersFinancialItem3": "Any investments — mutual funds, stocks, gold?",
   "intakePointersFinancialItem4": "Do you have insurance of any kind?",
-  "intakePointersFinancialItem5": "Any financial worries or goals you want to address"
+  "intakePointersFinancialItem5": "Any financial worries or goals you want to address",
+  "ageSuffix": "y/o",
+  "perMonth": "/mo"
 }

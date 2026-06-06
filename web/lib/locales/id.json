@@ -153,5 +153,7 @@
   "intakePointersFinancialItem2": "Apakah punya tabungan atau dana darurat?",
   "intakePointersFinancialItem3": "Investasi apa saja — reksa dana, saham, emas?",
   "intakePointersFinancialItem4": "Apakah sudah punya asuransi jenis apapun?",
-  "intakePointersFinancialItem5": "Kekhawatiran atau tujuan keuangan yang ingin dibahas"
+  "intakePointersFinancialItem5": "Kekhawatiran atau tujuan keuangan yang ingin dibahas",
+  "ageSuffix": "thn",
+  "perMonth": "/bln"
 }
