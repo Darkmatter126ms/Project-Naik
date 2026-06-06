@@ -290,20 +290,13 @@ export default function IntakePage() {
 
       <div className="intake-pointers" aria-label="Voice intake guidance">
         <h2 className="intake-pointers__title">{t.intakePointersTitle}</h2>
-        <ul className="intake-pointers__list">
-          <li>{t.intakePointersJob}</li>
-          <li>{t.intakePointersLocation}</li>
-          <li>
-            {t.intakePointersFinancialTitle}
-            <ul className="intake-pointers__sublist">
-              <li>{t.intakePointersFinancialItem1}</li>
-              <li>{t.intakePointersFinancialItem2}</li>
-              <li>{t.intakePointersFinancialItem3}</li>
-              <li>{t.intakePointersFinancialItem4}</li>
-              <li>{t.intakePointersFinancialItem5}</li>
-            </ul>
-          </li>
-        </ul>
+        <ol className="intake-pointers__list">
+          <li>{t.intakePointersQ1}</li>
+          <li>{t.intakePointersQ2}</li>
+          <li>{t.intakePointersQ3}</li>
+          <li>{t.intakePointersQ4}</li>
+          <li>{t.intakePointersQ5}</li>
+        </ol>
       </div>
 
       {/* ── Single cached-audio button — persona-aware (Hilda H-3-2) ───────
