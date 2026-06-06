@@ -21,6 +21,32 @@
     --sans:   'IBM Plex Sans', sans-serif;
   }
 
+  /* ── Light mode ─────────────────────────────────────────── */
+  body.light {
+    --bg:     #f0f4f8;
+    --surface:#ffffff;
+    --border: #d0dbe6;
+    --text:   #0d1b2a;
+    --muted:  #5a7080;
+    --green:  #00954a;
+    --green-d:#007a3a;
+  }
+  body.light .sidebar { background: #e4ecf4; border-right: 1px solid var(--border); }
+  body.light .sidebar-item:hover,
+  body.light .sidebar-item.active { background: #d0dbe6; }
+  body.light .topbar { background: var(--surface); }
+  body.light select option { background: var(--surface); color: var(--text); }
+  body.light .form-card { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  body.light input, body.light select, body.light textarea {
+    background: #f7fafc;
+    color: var(--text);
+    border-color: var(--border);
+  }
+  body.light input:focus, body.light select:focus {
+    border-color: var(--green);
+    background: #fff;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -347,6 +373,7 @@
   <div class="topbar-meta">
     <span><span class="status-dot"></span><span data-i18n="systemOnline">SISTEM ONLINE</span></span>
     <button id="lang-toggle" onclick="toggleLang()" style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-family:var(--mono);letter-spacing:0.08em;">EN</button>
+    <button id="theme-toggle" onclick="toggleTheme()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-family:var(--mono);letter-spacing:0.08em;" title="Toggle light/dark mode">☀</button>
     <span>OJK Reg. 05/POJK.05/2021</span>
     <span id="clock">—</span>
   </div>
@@ -1066,6 +1093,29 @@ function applyLang(lang) {
 function toggleLang() {
   applyLang(_LANG === "id" ? "en" : "id");
 }
+
+/* ── Theme toggle ───────────────────────────────────────── */
+var _THEME = localStorage.getItem("naik-admin-theme") || "dark";
+
+function applyTheme(theme) {
+  _THEME = theme;
+  var btn = document.getElementById("theme-toggle");
+  if (theme === "light") {
+    document.body.classList.add("light");
+    if (btn) btn.textContent = "🌙";
+  } else {
+    document.body.classList.remove("light");
+    if (btn) btn.textContent = "☀";
+  }
+  try { localStorage.setItem("naik-admin-theme", theme); } catch(e) {}
+}
+
+function toggleTheme() {
+  applyTheme(_THEME === "dark" ? "light" : "dark");
+}
+
+/* Apply saved theme on load */
+applyTheme(_THEME);
 
 /* Bilingual result panel helpers used by submitForm / rejectForm */
 function t(key) {
