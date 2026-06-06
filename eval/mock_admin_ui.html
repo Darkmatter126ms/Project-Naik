@@ -384,16 +384,16 @@
   <!-- ── Sidebar ──────────────────────────────────────────────── -->
   <nav class="sidebar">
     <div class="sidebar-section">Dashboard</div>
-    <a class="sidebar-item" href="#"><span class="sidebar-icon">📊</span>Ringkasan</a>
-    <a class="sidebar-item" href="#"><span class="sidebar-icon">📋</span>Antrian Polis</a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">📊</span><span data-i18n="nav_summary">Ringkasan</span></a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">📋</span><span data-i18n="nav_queue">Antrian Polis</span></a>
 
-    <div class="sidebar-section">Penerbitan</div>
-    <a class="sidebar-item active" href="#"><span class="sidebar-icon">➕</span>Polis Baru</a>
-    <a class="sidebar-item" href="#"><span class="sidebar-icon">🔍</span>Cari Polis</a>
-    <a class="sidebar-item" href="#"><span class="sidebar-icon">♻️</span>Pembaruan</a>
+    <div class="sidebar-section" data-i18n="nav_issuance">Penerbitan</div>
+    <a class="sidebar-item active" href="#"><span class="sidebar-icon">➕</span><span data-i18n="nav_new">Polis Baru</span></a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">🔍</span><span data-i18n="nav_search">Cari Polis</span></a>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">♻️</span><span data-i18n="nav_renew">Pembaruan</span></a>
 
-    <div class="sidebar-section">Klaim</div>
-    <a class="sidebar-item" href="#"><span class="sidebar-icon">⚡</span>Klaim Parametrik</a>
+    <div class="sidebar-section" data-i18n="nav_claims">Klaim</div>
+    <a class="sidebar-item" href="#"><span class="sidebar-icon">⚡</span><span data-i18n="nav_parametric">Klaim Parametrik</span></a>
     <a class="sidebar-item" href="#"><span class="sidebar-icon">📁</span>Riwayat</a>
 
     <div class="sidebar-section">Admin</div>
@@ -403,7 +403,7 @@
 
   <!-- ── Main ─────────────────────────────────────────────────── -->
   <main class="main">
-    <div class="page-title">Penerbitan Polis</div>
+    <div class="page-title" data-i18n="pageTitle">Penerbitan Polis</div>
     <div class="page-heading" data-i18n="pageHeading">Formulir Penerbitan — Naik Income Shield</div>
 
     <!-- Section 1: Identitas Nasabah -->
@@ -571,7 +571,7 @@
 
           <!-- Trigger block -->
           <div class="form-group span2">
-            <label>Pemicu Parametrik (BMKG) <span class="required">*</span></label>
+            <label><span data-i18n="lbl_trigger">Pemicu Parametrik (BMKG)</span> <span class="required">*</span></label>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:4px;">
               <div class="form-group">
                 <label for="trigger_metric" style="font-size:9px;"><span data-i18n="lbl_metric">Metrik</span></label>
@@ -648,7 +648,7 @@
           <span class="summary-val" id="sum-kec">—</span>
         </div>
         <div class="summary-row">
-          <span class="summary-key">Produk</span>
+          <span class="summary-key" data-i18n="sum_produk">Produk</span>
           <span class="summary-val">Naik Income Shield (Parametrik)</span>
         </div>
         <div class="summary-row">
@@ -746,12 +746,14 @@ function syncSummary(){
   const kec      = document.getElementById('kecamatan').value;
   if(thresh && kec){
     const metricLabel = metric === 'rainfall_mm'
-      ? `Curah Hujan ≥ ${thresh} mm/${window_h}h`
-      : `Angin ≥ ${thresh} km/h/${window_h}h`;
-    const triggerText = `${metricLabel} di ${kec}`;
+      ? (OPT_STRINGS.opt_rainfall[_LANG] || 'Rainfall') + ` ≥ ${thresh} mm/${window_h}h`
+      : (OPT_STRINGS.opt_wind[_LANG] || 'Wind Speed') + ` ≥ ${thresh} km/h/${window_h}h`;
+    const atWord = _LANG === 'en' ? 'in' : 'di';
+    const triggerText = `${metricLabel} ${atWord} ${kec}`;
     document.getElementById('sum-trigger').textContent = triggerText;
     document.getElementById('trigger-preview').style.display = 'inline-flex';
-    document.getElementById('trigger-preview-text').textContent = `Pemicu aktif: ${triggerText}`;
+    const activeLabel = STRINGS.trigger_active ? STRINGS.trigger_active[_LANG] : 'Pemicu aktif';
+    document.getElementById('trigger-preview-text').textContent = `${activeLabel}: ${triggerText}`;
   } else {
     document.getElementById('sum-trigger').textContent = '—';
     document.getElementById('trigger-preview').style.display = 'none';
@@ -1001,6 +1003,8 @@ var _LANG = "id";
 var STRINGS = {
   /* System */
   systemOnline:  { id: "SISTEM ONLINE",                      en: "SYSTEM ONLINE" },
+  /* Browser title + page header */
+  pageTitle:     { id: "Penerbitan Polis",                   en: "Policy Issuance" },
   /* Page */
   pageHeading:   { id: "Formulir Penerbitan — Naik Income Shield",
                    en: "Issuance Form — Naik Income Shield" },
@@ -1021,6 +1025,7 @@ var STRINGS = {
   lbl_risk:      { id: "Profil Risiko",                      en: "Risk Profile" },
   lbl_product:   { id: "Nama Produk",                        en: "Product Name" },
   lbl_term:      { id: "Masa Pertanggungan (Hari)",          en: "Coverage Term (Days)" },
+  lbl_trigger:   { id: "Pemicu Parametrik (BMKG)",           en: "Parametric Trigger (BMKG)" },
   lbl_metric:    { id: "Metrik",                             en: "Metric" },
   lbl_threshold: { id: "Ambang Batas",                       en: "Threshold" },
   lbl_window:    { id: "Jendela Observasi (Jam)",            en: "Observation Window (h)" },
@@ -1045,10 +1050,22 @@ var STRINGS = {
   /* Summary keys */
   sum_nasabah:   { id: "Nasabah",             en: "Applicant" },
   sum_kecamatan: { id: "Kecamatan",           en: "District" },
+  sum_produk:    { id: "Produk",              en: "Product" },
   sum_pemicu:    { id: "Pemicu",              en: "Trigger" },
   sum_payout:    { id: "Payout / Kejadian",   en: "Payout / Event" },
   sum_premi:     { id: "Premi",               en: "Premium" },
   sum_term:      { id: "Masa Pertanggungan",  en: "Coverage Term" },
+  /* Sidebar */
+  nav_summary:   { id: "Ringkasan",           en: "Summary" },
+  nav_queue:     { id: "Antrian Polis",       en: "Policy Queue" },
+  nav_issuance:  { id: "Penerbitan",          en: "Issuance" },
+  nav_new:       { id: "Polis Baru",          en: "New Policy" },
+  nav_search:    { id: "Cari Polis",          en: "Search Policy" },
+  nav_renew:     { id: "Pembaruan",           en: "Renewal" },
+  nav_claims:    { id: "Klaim",               en: "Claims" },
+  nav_parametric:{ id: "Klaim Parametrik",    en: "Parametric Claim" },
+  /* Trigger preview */
+  trigger_active:{ id: "Pemicu aktif",        en: "Trigger active" },
 };
 
 var OPT_STRINGS = {
@@ -1075,6 +1092,10 @@ var OPT_STRINGS = {
 
 function applyLang(lang) {
   _LANG = lang;
+  /* Update browser title */
+  document.title = lang === 'id'
+    ? 'MoneeInsure — Admin Portal: Penerbitan Polis'
+    : 'MoneeInsure — Admin Portal: Policy Issuance';
   /* Static text nodes */
   document.querySelectorAll("[data-i18n]").forEach(function(el) {
     var key = el.getAttribute("data-i18n");
