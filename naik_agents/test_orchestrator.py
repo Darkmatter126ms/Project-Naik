@@ -11,15 +11,16 @@ import os
 import sys
 import time
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_ROOT = os.path.abspath(os.path.join(_HERE, ".."))
-for p in (_ROOT, os.path.join(_ROOT, "api")):
-    if p not in sys.path:
-        sys.path.insert(0, p)
+if __name__ == "__main__":
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+    _ROOT = os.path.abspath(os.path.join(_HERE, ".."))
+    for p in (_ROOT, os.path.join(_ROOT, "api")):
+        if p not in sys.path:
+            sys.path.insert(0, p)
 
-from api.schemas import ComplianceStatus, FinalResponse, NextStep  # noqa: E402
-from naik_agents.orchestrator import run_naik, run_naik_async  # noqa: E402
-from naik_agents.personas import make_sari, persona_suite  # noqa: E402
+    from api.schemas import ComplianceStatus, FinalResponse, NextStep  # noqa: E402
+    from naik_agents.orchestrator import run_naik, run_naik_async  # noqa: E402
+    from naik_agents.personas import make_sari, persona_suite  # noqa: E402
 
 
 def main() -> int:

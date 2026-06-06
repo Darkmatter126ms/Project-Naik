@@ -13,19 +13,20 @@ from __future__ import annotations
 import os
 import sys
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_ROOT = os.path.abspath(os.path.join(_HERE, ".."))
-for p in (_ROOT, os.path.join(_ROOT, "api")):
-    if p not in sys.path:
-        sys.path.insert(0, p)
+if __name__ == "__main__":
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+    _ROOT = os.path.abspath(os.path.join(_HERE, ".."))
+    for p in (_ROOT, os.path.join(_ROOT, "api")):
+        if p not in sys.path:
+            sys.path.insert(0, p)
 
-from naik_agents.tools import (  # noqa: E402
-    AGENTS_SDK_AVAILABLE,
-    check_trigger_frequency,
-    get_bmkg_history,
-    get_fund_list,
-    price_income_shock_cover,
-)
+    from naik_agents.tools import (  # noqa: E402
+        AGENTS_SDK_AVAILABLE,
+        check_trigger_frequency,
+        get_bmkg_history,
+        get_fund_list,
+        price_income_shock_cover,
+    )
 
 
 def main() -> int:

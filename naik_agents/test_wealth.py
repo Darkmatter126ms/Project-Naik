@@ -21,16 +21,17 @@ import os
 import sys
 
 # Make repo-root imports work regardless of where this is invoked.
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_ROOT = os.path.abspath(os.path.join(_HERE, ".."))
-for p in (_ROOT, os.path.join(_ROOT, "api")):
-    if p not in sys.path:
-        sys.path.insert(0, p)
+if __name__ == "__main__":
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+    _ROOT = os.path.abspath(os.path.join(_HERE, ".."))
+    for p in (_ROOT, os.path.join(_ROOT, "api")):
+        if p not in sys.path:
+            sys.path.insert(0, p)
 
-from naik_agents.diagnostic import run_diagnostic  # noqa: E402
-from naik_agents.personas import make_sari  # noqa: E402
-from naik_agents.wealth import run_wealth  # noqa: E402
-from api.schemas import FundRiskLevel, FundType, RiskProfile  # noqa: E402
+    from naik_agents.diagnostic import run_diagnostic  # noqa: E402
+    from naik_agents.personas import make_sari  # noqa: E402
+    from naik_agents.wealth import run_wealth  # noqa: E402
+    from api.schemas import FundRiskLevel, FundType, RiskProfile  # noqa: E402
 
 
 def main() -> int:

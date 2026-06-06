@@ -9,52 +9,53 @@ from __future__ import annotations
 import os
 import sys
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_ROOT = os.path.abspath(os.path.join(_HERE, ".."))
-for p in (_ROOT, os.path.join(_ROOT, "api")):
-    if p not in sys.path:
-        sys.path.insert(0, p)
+if __name__ == "__main__":
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+    _ROOT = os.path.abspath(os.path.join(_HERE, ".."))
+    for p in (_ROOT, os.path.join(_ROOT, "api")):
+        if p not in sys.path:
+            sys.path.insert(0, p)
 
-from api.schemas import (  # noqa: E402
-    ComplianceStatus,
-    FundPick,
-    FundRiskLevel,
-    FundType,
-    RiskProfile,
-    WealthRecommendation,
-)
-from naik_agents.compliance import run_compliance, sanitize_text  # noqa: E402
-from naik_agents.diagnostic import run_diagnostic  # noqa: E402
-from naik_agents.insurance import run_insurance  # noqa: E402
-from naik_agents.personas import make_sari  # noqa: E402
-from naik_agents.wealth import run_wealth  # noqa: E402
-
-
-def _pick(rationale: str, *, is_sharia: bool = True, fund_id: str = "F1") -> FundPick:
-    return FundPick(
-        fund_id=fund_id,
-        fund_name="Test Fund",
-        fund_type=FundType.MONEY_MARKET,
-        manager="Test MI",
-        risk_level=FundRiskLevel.LOW,
-        expense_ratio_pct=1.0,
-        min_investment_idr=10_000,
-        is_ojk_licensed=True,
-        is_sharia=is_sharia,
-        match_score=80.0,
-        rationale=rationale,
+    from api.schemas import (  # noqa: E402
+        ComplianceStatus,
+        FundPick,
+        FundRiskLevel,
+        FundType,
+        RiskProfile,
+        WealthRecommendation,
     )
+    from naik_agents.compliance import run_compliance, sanitize_text  # noqa: E402
+    from naik_agents.diagnostic import run_diagnostic  # noqa: E402
+    from naik_agents.insurance import run_insurance  # noqa: E402
+    from naik_agents.personas import make_sari  # noqa: E402
+    from naik_agents.wealth import run_wealth  # noqa: E402
 
 
-def _reco(picks, rationale: str, user_id: str = "tester") -> WealthRecommendation:
-    return WealthRecommendation(
-        user_id=user_id,
-        risk_profile_used=RiskProfile.CONSERVATIVE,
-        investment_horizon_years=3.0,
-        recommended_monthly_contribution_idr=300_000,
-        picks=picks,
-        rationale=rationale,
-    )
+    def _pick(rationale: str, *, is_sharia: bool = True, fund_id: str = "F1") -> FundPick:
+        return FundPick(
+            fund_id=fund_id,
+            fund_name="Test Fund",
+            fund_type=FundType.MONEY_MARKET,
+            manager="Test MI",
+            risk_level=FundRiskLevel.LOW,
+            expense_ratio_pct=1.0,
+            min_investment_idr=10_000,
+            is_ojk_licensed=True,
+            is_sharia=is_sharia,
+            match_score=80.0,
+            rationale=rationale,
+        )
+
+
+    def _reco(picks, rationale: str, user_id: str = "tester") -> WealthRecommendation:
+        return WealthRecommendation(
+            user_id=user_id,
+            risk_profile_used=RiskProfile.CONSERVATIVE,
+            investment_horizon_years=3.0,
+            recommended_monthly_contribution_idr=300_000,
+            picks=picks,
+            rationale=rationale,
+        )
 
 
 def main() -> int:
