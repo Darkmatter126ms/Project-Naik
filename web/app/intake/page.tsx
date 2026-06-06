@@ -43,6 +43,7 @@ export default function IntakePage() {
     stop,
   } = useRealtimeVoice({
     maxSeconds: DURATION,
+    lang,
     onTranscript: (full) => {
       setTranscript(full);
       setState("done");
@@ -286,6 +287,24 @@ export default function IntakePage() {
 
       <h1 className="page-title">{t.intakeTitle}</h1>
       <p className="page-subtitle">{t.intakeInstruction}</p>
+
+      <div className="intake-pointers" aria-label="Voice intake guidance">
+        <h2 className="intake-pointers__title">{t.intakePointersTitle}</h2>
+        <ul className="intake-pointers__list">
+          <li>{t.intakePointersJob}</li>
+          <li>{t.intakePointersLocation}</li>
+          <li>
+            {t.intakePointersFinancialTitle}
+            <ul className="intake-pointers__sublist">
+              <li>{t.intakePointersFinancialItem1}</li>
+              <li>{t.intakePointersFinancialItem2}</li>
+              <li>{t.intakePointersFinancialItem3}</li>
+              <li>{t.intakePointersFinancialItem4}</li>
+              <li>{t.intakePointersFinancialItem5}</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
 
       {/* ── Single cached-audio button — persona-aware (Hilda H-3-2) ───────
            Only shown when the user arrived via a demo persona card.
