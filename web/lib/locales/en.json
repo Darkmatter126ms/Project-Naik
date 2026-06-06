@@ -136,5 +136,13 @@
   "onboardSubtitle": "Tell us about yourself so we can personalise your diagnosis.",
   "onboardSectionYou": "About You",
   "onboardSectionFinance": "Financial Preferences",
-  "continueToIntake": "Continue to Interview →"
+  "continueToIntake": "Continue to Interview →",
+  "disclaimerGeneral": "This is general guidance only — not personalised financial advice, per OJK regulations.",
+  "disclaimerPastPerf": "Past performance does not guarantee future results.",
+  "disclaimerInvestRisk": "Mutual fund investments carry risk; the value of your investment may rise or fall.",
+  "disclaimerManualConfirm": "Manual confirmation is required before any transaction is made.",
+  "disclaimerParametric": "Parametric insurance pays based on BMKG weather indices, not individual loss assessment.",
+  "disclaimerRewritten": "Some statements have been adjusted to avoid implying guaranteed outcomes.",
+  "disclaimerSharia": "Some funds are not yet sharia-certified; review required before offering to sharia investors.",
+  "complianceRationale": "All outputs have been reviewed and framed as general guidance per OJK regulations."
 }

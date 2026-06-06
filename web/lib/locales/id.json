@@ -136,5 +136,13 @@
   "onboardSubtitle": "Ceritakan tentang diri Anda agar diagnosis lebih personal.",
   "onboardSectionYou": "Tentang Anda",
   "onboardSectionFinance": "Preferensi Keuangan",
-  "continueToIntake": "Lanjut ke Wawancara →"
+  "continueToIntake": "Lanjut ke Wawancara →",
+  "disclaimerGeneral": "Ini adalah panduan umum, bukan nasihat keuangan yang dipersonalisasi, sesuai ketentuan OJK.",
+  "disclaimerPastPerf": "Kinerja masa lalu tidak menjamin hasil di masa depan.",
+  "disclaimerInvestRisk": "Investasi reksa dana mengandung risiko; nilai investasi dapat naik atau turun.",
+  "disclaimerManualConfirm": "Konfirmasi manual diperlukan sebelum melakukan transaksi apa pun.",
+  "disclaimerParametric": "Asuransi parametrik membayar berdasarkan indeks cuaca BMKG, bukan penilaian kerugian individual.",
+  "disclaimerRewritten": "Beberapa pernyataan telah disesuaikan agar tidak menjanjikan hasil atau jaminan tertentu.",
+  "disclaimerSharia": "Terdapat dana yang belum tersertifikasi syariah; perlu tinjauan sebelum ditawarkan kepada investor syariah.",
+  "complianceRationale": "Semua keluaran ditinjau dan dibingkai sebagai panduan umum sesuai ketentuan OJK."
 }
