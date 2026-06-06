@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Lang } from "./types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5050";
@@ -34,13 +35,25 @@ export type VoiceStatus =
 
 interface Options {
   maxSeconds?: number;
+  lang?: Lang;
   onTranscript?: (full: string) => void;
   onTranscriptDelta?: (partial: string) => void;
   onError?: (message: string) => void;
 }
 
+function normalizeTranscript(text: string): string {
+  const cleaned = text
+    .normalize("NFKD")
+    .replace(/[^\p{Script=Latin}\p{N}\p{P}\p{Zs}]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleaned;
+}
+
 export function useRealtimeVoice({
   maxSeconds = 90,
+  lang = "id",
   onTranscript,
   onTranscriptDelta,
   onError,
@@ -131,15 +144,15 @@ export function useRealtimeVoice({
               type: "realtime",
               instructions:
                 "Anda hanya mendengarkan wawancara keuangan; jangan menjawab.",
-              audio: {
-                input: {
-                  transcription: {
-                    model: "gpt-4o-transcribe",
-                    language: "id",
+                audio: {
+                  input: {
+                    transcription: {
+                      model: "gpt-4o-transcribe",
+                      language: lang,
+                    },
+                    turn_detection: { type: "server_vad" },
                   },
-                  turn_detection: { type: "server_vad" },
                 },
-              },
             },
           }),
         );
@@ -161,17 +174,19 @@ export function useRealtimeVoice({
           msg.type ===
           "conversation.item.input_audio_transcription.completed"
         ) {
+          const normalized = normalizeTranscript(msg.transcript ?? "");
           transcriptRef.current =
             (transcriptRef.current ? transcriptRef.current + " " : "") +
-            msg.transcript;
+            normalized;
           setTranscript(transcriptRef.current);
           onTranscript?.(transcriptRef.current);
         } else if (
           msg.type === "conversation.item.input_audio_transcription.delta"
         ) {
+          const normalizedDelta = normalizeTranscript(msg.delta ?? "");
           const live = transcriptRef.current
-            ? transcriptRef.current + " " + (msg.delta ?? "")
-            : (msg.delta ?? "");
+            ? transcriptRef.current + " " + normalizedDelta
+            : normalizedDelta;
           onTranscriptDelta?.(live);
         } else if (msg.type === "error") {
           fail(msg.error?.message ?? "realtime error");
