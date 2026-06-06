@@ -145,15 +145,12 @@
   "disclaimerRewritten": "Beberapa pernyataan telah disesuaikan agar tidak menjanjikan hasil atau jaminan tertentu.",
   "disclaimerSharia": "Terdapat dana yang belum tersertifikasi syariah; perlu tinjauan sebelum ditawarkan kepada investor syariah.",
   "complianceRationale": "Semua keluaran ditinjau dan dibingkai sebagai panduan umum sesuai ketentuan OJK.",
-  "intakePointersTitle": "Ceritakan tentang:",
-  "intakePointersJob": "Pekerjaan Anda — ojek online, pedagang, freelancer, karyawan?",
-  "intakePointersLocation": "Tempat tinggal Anda — kecamatan atau wilayah",
-  "intakePointersFinancialTitle": "Kondisi keuangan Anda:",
-  "intakePointersFinancialItem1": "Penghasilan bulanan (perkiraan kasar tidak apa-apa)",
-  "intakePointersFinancialItem2": "Apakah punya tabungan atau dana darurat?",
-  "intakePointersFinancialItem3": "Investasi apa saja — reksa dana, saham, emas?",
-  "intakePointersFinancialItem4": "Apakah sudah punya asuransi jenis apapun?",
-  "intakePointersFinancialItem5": "Kekhawatiran atau tujuan keuangan yang ingin dibahas",
   "ageSuffix": "thn",
-  "perMonth": "/bln"
+  "perMonth": "/bln",
+  "intakePointersTitle": "Jawab 5 pertanyaan ini dengan suara:",
+  "intakePointersQ1": "Dalam sebulan terakhir, penghasilan kamu stabil, agak naik-turun, atau sangat tidak menentu?",
+  "intakePointersQ2": "Kira-kira bulan lalu kamu mendapat berapa, dan berapa pengeluaran wajib seperti makan, sewa, transportasi, atau cicilan?",
+  "intakePointersQ3": "Kalau penghasilan kamu berhenti hari ini, tabungan kamu cukup untuk kebutuhan pokok selama berapa lama?",
+  "intakePointersQ4": "Tujuan utama kamu sekarang apa: dana darurat, modal usaha, bayar utang, kebutuhan keluarga, atau mulai investasi?",
+  "intakePointersQ5": "Kamu lebih nyaman pilihan yang sangat aman, atau mau menerima sedikit risiko? Dan apakah kamu lebih pilih produk syariah?"
 }

@@ -145,15 +145,12 @@
   "disclaimerRewritten": "Some statements have been adjusted to avoid implying guaranteed outcomes.",
   "disclaimerSharia": "Some funds are not yet sharia-certified; review required before offering to sharia investors.",
   "complianceRationale": "All outputs have been reviewed and framed as general guidance per OJK regulations.",
-  "intakePointersTitle": "What to talk about:",
-  "intakePointersJob": "Your job or work — gig driver, trader, freelancer, salaried?",
-  "intakePointersLocation": "Where you live — your district or area",
-  "intakePointersFinancialTitle": "Your financial situation:",
-  "intakePointersFinancialItem1": "Monthly income (rough estimate is fine)",
-  "intakePointersFinancialItem2": "Do you have savings or an emergency fund?",
-  "intakePointersFinancialItem3": "Any investments — mutual funds, stocks, gold?",
-  "intakePointersFinancialItem4": "Do you have insurance of any kind?",
-  "intakePointersFinancialItem5": "Any financial worries or goals you want to address",
   "ageSuffix": "y/o",
-  "perMonth": "/mo"
+  "perMonth": "/mo",
+  "intakePointersTitle": "Answer these 5 questions out loud:",
+  "intakePointersQ1": "In the past month, was your income stable, somewhat irregular, or very unpredictable?",
+  "intakePointersQ2": "Roughly how much did you earn last month, and how much did you spend on essentials?",
+  "intakePointersQ3": "If your income stopped today, how long could your savings cover basic needs?",
+  "intakePointersQ4": "What is your main goal right now: emergency savings, business capital, paying debt, family needs, or starting to invest?",
+  "intakePointersQ5": "Would you prefer a very safe option, or are you comfortable with some risk? And do you prefer Sharia-compliant products?"
 }
