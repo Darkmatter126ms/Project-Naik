@@ -17,7 +17,7 @@
   "gigYes": "Gig worker",
   "gigNo": "Salaried",
   "intakeTitle": "Voice Interview",
-  "intakeInstruction": "Press the button and talk about your finances in Bahasa Indonesia. You have 90 seconds.",
+  "intakeInstruction": "Press the button and talk about your finances in Bahasa Indonesia.",
   "recordStart": "Start Speaking",
   "recordStop": "Done",
   "transcriptLabel": "Transcript",
@@ -144,14 +144,5 @@
   "disclaimerParametric": "Parametric insurance pays based on BMKG weather indices, not individual loss assessment.",
   "disclaimerRewritten": "Some statements have been adjusted to avoid implying guaranteed outcomes.",
   "disclaimerSharia": "Some funds are not yet sharia-certified; review required before offering to sharia investors.",
-  "complianceRationale": "All outputs have been reviewed and framed as general guidance per OJK regulations.",
-  "intakePointersTitle": "What to talk about:",
-  "intakePointersJob": "Your job or work — gig driver, trader, freelancer, salaried?",
-  "intakePointersLocation": "Where you live — your district or area",
-  "intakePointersFinancialTitle": "Your financial situation:",
-  "intakePointersFinancialItem1": "Monthly income (rough estimate is fine)",
-  "intakePointersFinancialItem2": "Do you have savings or an emergency fund?",
-  "intakePointersFinancialItem3": "Any investments — mutual funds, stocks, gold?",
-  "intakePointersFinancialItem4": "Do you have insurance of any kind?",
-  "intakePointersFinancialItem5": "Any financial worries or goals you want to address"
+  "complianceRationale": "All outputs have been reviewed and framed as general guidance per OJK regulations."
 }
