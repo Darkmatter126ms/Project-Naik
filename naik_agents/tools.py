@@ -37,9 +37,24 @@ import json
 import math
 import os
 import re
+import threading
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
+
+# joblib is imported at module level to avoid the "partially initialized module"
+# race condition on Render: when the prewarm thread and the first /orchestrate
+# request both call _load_pricing_bundle simultaneously, a local `import joblib`
+# inside the function can see a half-initialized module. Module-level import is
+# protected by Python's import lock and is always safe.
+try:
+    import joblib as _joblib
+    _JOBLIB_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _joblib = None  # type: ignore[assignment]
+    _JOBLIB_AVAILABLE = False
+
+_glm_load_lock = threading.Lock()
 
 # --------------------------------------------------------------------------- #
 # Fixture / model locations (resolved relative to this file, CWD-independent)  #
@@ -250,18 +265,22 @@ def _load_pricing_bundle(path_str: str) -> dict:
     """Load the joblib pricing bundle once (cached).
 
     Returns the dict bundle: ``{"model", "feature_names", "var_power", "link",
-    "gini_holdout", ...}``. Requires scikit-learn/joblib (pricing extras); the
-    import is local so callers that never price need not have them installed.
+    "gini_holdout", ...}``. Thread-safe: the lock prevents the race condition
+    where two threads simultaneously trigger the first load and one sees a
+    partially-initialized joblib module.
     """
-    import joblib  # local import: only the pricing path needs sklearn/joblib
-
-    path = Path(path_str)
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Pricing model not found at {path}. Set NAIK_PRICING_MODEL_PATH or "
-            f"restore agents/pricing/income_shock_glm.joblib."
+    if not _JOBLIB_AVAILABLE or _joblib is None:
+        raise ImportError(
+            "joblib is not installed. Run: pip install joblib scikit-learn"
         )
-    return joblib.load(path)
+    with _glm_load_lock:
+        path = Path(path_str)
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Pricing model not found at {path}. Set NAIK_PRICING_MODEL_PATH or "
+                f"restore agents/pricing/income_shock_glm.joblib."
+            )
+        return _joblib.load(path)
 
 
 def _income_decile_from_monthly(monthly_income_idr: float) -> int:
