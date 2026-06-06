@@ -101,7 +101,6 @@ export default function IntakePage() {
 
   async function startRecording() {
     setState("recording");
-    setSecondsLeft(DURATION);
     setTranscript("");
     setError(null);
     try {
@@ -209,7 +208,7 @@ export default function IntakePage() {
         timerRef.current = null;
         setTranscript(item.transcript);
         setState("done");
-      };
+    };
 
       startCountdown();
       await audio.play();
@@ -263,11 +262,12 @@ export default function IntakePage() {
   // ── SVG ring progress ─────────────────────────────────────────────────────
   const R = 52;
   const C = 2 * Math.PI * R;
-  const progress = state === "recording" ? (DURATION - secondsLeft) / DURATION : 0;
+  const progress =
+    state === "recording"
+      ? (DURATION - secondsLeft) / DURATION
+      : 0;
   const dash = C - progress * C;
-  // Use realtime countdown when voice is live; local countdown during cached playback
-  const displaySeconds =
-    voiceStatus === "listening" ? realtimeSecondsLeft : secondsLeft;
+  const displaySeconds = secondsLeft;
 
   return (
     <div className="page page--intake">
@@ -335,17 +335,15 @@ export default function IntakePage() {
           disabled={analyzing}
           aria-label={state === "recording" ? t.recordStop : t.recordStart}
         >
-          {state === "recording"
-            ? <span className="voice-btn__icon voice-btn__icon--stop">■</span>
-            : <span className="voice-btn__icon">🎙</span>}
+          <span className={`voice-btn__icon${state === "recording" ? " voice-btn__icon--stop" : ""}`}>
+            {state === "recording" ? "■" : "🎙"}
+          </span>
         </button>
 
-        {state === "recording" && (
-          <p className="voice-countdown">
-            <span className="voice-countdown__num">{displaySeconds}</span>
-            <span className="voice-countdown__label"> {t.timeLeft}</span>
-          </p>
-        )}
+        <p className="voice-countdown" aria-live="polite" aria-atomic="true">
+          <span className="voice-countdown__num">{displaySeconds}</span>
+          <span className="voice-countdown__label"> {t.timeLeft}</span>
+        </p>
       </div>
 
       {/* ── Transcript ── */}
