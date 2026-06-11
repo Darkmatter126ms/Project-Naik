@@ -91,3 +91,22 @@ status. That round-trip — Vercel → Render → Postgres — is the cloud path
 - `api/schemas.py` field names are frozen; coordinate before renaming.
 - Money is whole-rupiah `int` (`*_idr`); wellness scores are floats in `[0,100]`.
 - Secrets live only in platform env stores, never in the repo.
+
+## Team Members
+| Name | Email | Website |
+| ------------- | ------------- | ------------- |
+|Allen Lu Zhao Quan|ALLE0002@e.ntu.edu.sg| [Portfolio](https://allenlu.vercel.app) |
+|Gao Xinyue|GAOX0032@e.ntu.edu.sg| [Linkedin](https://www.linkedin.com/in/xinyuegaontusg) |
+|Hilda Tio|HTIO001@e.ntu.edu.sg| [Linkedin](https://www.linkedin.com/in/tiohilda) |
+|Tio Sher Min|STIO002@e.ntu.edu.sg| [Linkedin](https://www.linkedin.com/in/sher-min-tio-119a58327) | 
+
+## Contributors
+| Component | Name |
+| ------------- | ------------- |
+|AI Agents|Allen|
+|Pricing & Evaluation Framework|Allen|
+|System Architecture & API|Allen|
+|Frontend|Allen, Hilda, Sher Min, Xinyue|
+|Backend|Allen, Xinyue|
+|Data & Fixtures|Allen|
+|Slide Design|Xinyue|
